@@ -23,7 +23,7 @@ git clone https://github.com/adammpkins/llama-terminal-completion.git
 
 ### Environment Variables
 
-Before using this script, you need to set up the `LLAMA_COMPLETION_DIR` and `LLAMA_CPP_DIR` environment variables. These variables point to the directories where the completion and `llama.cpp` files are located, respectively. You can set these variables in your shell configuration file (e.g., `.bashrc` or `.zshrc`) like this:
+Before using this script, you need to set up the `LLAMA_COMPLETION_DIR` and `LLAMA_CPP_DIR` environment variables. These variables point to the directories where the `llama-terminal-completion` and `llama.cpp` files are located, respectively. You can set these variables in your shell configuration file (e.g., `.bashrc` or `.zshrc`) like this:
 
 ```bash
 export LLAMA_COMPLETION_DIR="/path/to/llama-terminal-completion/"
