@@ -1,0 +1,6 @@
+history.txt
+llama_output.txt
+llama_question.txt
+question_history.txt
+.vscode/
+__pycache__/
