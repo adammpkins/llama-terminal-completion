@@ -27,7 +27,7 @@ Before using this script, you need to set up the `LLAMA_COMPLETION_DIR` and `LLA
 
 ```bash
 export LLAMA_COMPLETION_DIR="/path/to/llama-terminal-completion/"
-export LLAMA_CPP_DIR="/path/to/llama-cpp/"
+export LLAMA_CPP_DIR="/path/to/llama.cpp/"
 ```
 Replace /path/to/llama-terminal-completion/ and /path/to/llama-cpp/ with the actual paths to the respective directories on your system.
 
