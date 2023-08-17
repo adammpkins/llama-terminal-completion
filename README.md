@@ -12,7 +12,7 @@
   - [Contributing](#contributing)
   - [License](#license)
     
-![image](https://i.ibb.co/5krvtqV/tc2.gif)
+![image](https://github.com/adammpkins/llama-terminal-completion/blob/main/readme.gif)
 
 This Python script interacts with the [llama.cpp](https://github.com/ggerganov/llama.cpp) library to provide virtual assistant capabilities through the command line. It allows you to ask questions and receive intelligent responses, as well as generate Linux commands based on your prompts.
 
