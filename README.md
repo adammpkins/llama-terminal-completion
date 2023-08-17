@@ -73,6 +73,19 @@ Options:
 --help            show this help message and exit
 ```
 
+### Alias
+You can create an alias for the script in your shell configuration file (e.g., `.bashrc` or `.zshrc`) like this:
+
+```bash
+alias ask="python3 /path/to/llama-terminal-completion/ask_llama.py"
+```
+
+Then you can run the script like this:
+
+```bash
+ask "list the contents of the current directory"
+```
+
 ## Contributing
 Contributions to this project are welcome! Feel free to fork the repository, make changes, and submit pull requests.
 
