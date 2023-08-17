@@ -50,7 +50,7 @@ Run the script with the desired options. Here are some examples:
 - To clear the history of commands:
     
 ```bash
-    python3 ask_llama.py -ch
+python3 ask_llama.py -ch
 ```
 
 For more options, you can run:
