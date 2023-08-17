@@ -1,4 +1,13 @@
 # Llama Terminal Completion
+- [Llama Terminal Completion](#llama-terminal-completion)
+  - [Installation](#installation)
+    - [Llama.cpp installation](#llamacpp-installation)
+    - [Llama Terminal Completion installation](#llama-terminal-completion-installation)
+    - [Environment Variables](#environment-variables)
+  - [Usage](#usage)
+    - [Alias](#alias)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 This Python script interacts with the [llama.cpp](https://github.com/ggerganov/llama.cpp) library to provide virtual assistant capabilities through the command line. It allows you to ask questions and receive intelligent responses, as well as generate Linux commands based on your prompts.
 
