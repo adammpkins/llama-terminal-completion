@@ -14,7 +14,7 @@ llama_cpp_dir = os.environ["LLAMA_CPP_DIR"]
 # Get the arguments passed to the program
 def get_args():
     args = sys.argv
-    
+
     # Remove the first argument which is the name of the program
     args.pop(0)
     return args
@@ -95,7 +95,9 @@ def run_llama_request(prompt):
         + llama_cpp_dir
         + "/models/7B/ggml-model-q4_0.bin -p 'The following command is a single Linux command that will "
         + prompt
-        + ".: $ `' -n 25 --top-p 0.5 --top-k 30 --ctx-size 256  --repeat-penalty 1.0 >> /home/adammpkins/Development/llama-terminal-completion/llama_output.txt 2>/dev/null"
+        + ".: $ `' -n 25 --top-p 0.5 --top-k 30 --ctx-size 256  --repeat-penalty 1.0 >> "
+        + llama_completion_dir
+        + "llama_output.txt 2>/dev/null"
     )
 
 
@@ -107,7 +109,9 @@ def run_llama_question(prompt):
         + llama_cpp_dir
         + "models/7B/ggml-model-q4_0.bin -p 'The following is a trancript of a conversation with a virtual assistant. The assistant only provides correct answers to questions \n Assistant: What can I help you with today? \n User:"
         + prompt
-        + " Assistant:' -n 100 --top-p 0.5 --top-k 30 --ctx-size 256  --repeat-penalty 1.2 >> /home/adammpkins/Development/llama-terminal-completion/llama_question.txt 2>/dev/null"
+        + " Assistant:' -n 100 --top-p 0.5 --top-k 30 --ctx-size 256  --repeat-penalty 1.2 >> "
+        + llama_completion_dir
+        + "llama_question.txt 2>/dev/null"
     )
 
 
@@ -136,7 +140,7 @@ def process_llama_question():
                         + response
                         + "\n"
                     )
-                    
+
         return response
     return None
 
@@ -147,12 +151,12 @@ def process_llama_output():
         for line in f:
             if line.__contains__("$"):
                 response = line
-                
+
                 # The command is the text between the first and last backticks
                 response = response.split("`")[1]
                 response = response.split("`")[-1]
                 command = response
-                
+
                 # Log the command to the history file
                 with open(
                     llama_completion_dir + "history.txt",
@@ -164,7 +168,7 @@ def process_llama_output():
                         + command
                         + "\n"
                     )
-                    
+
                 return response
     return None
 
@@ -179,13 +183,13 @@ def prompt_user(response):
             + response
             + "\033[0m"
         )
-        
+
         # Ask the user if they want to run the command
         print("\033[92m" + "Would you like to run this command? (Y/n)" + "\033[0m")
 
         # Get the user input and run the command if the user wants to, otherwise exit
         user_input = input()
-        
+
         # If the user presses enter, then we assume they want to run the command, otherwise we check if they entered Y, y, or n and respond accordingly
         if user_input == "Y" or user_input == "y" or user_input == "":
             print("\033[92m" + "Running command..." + "\033[0m")
