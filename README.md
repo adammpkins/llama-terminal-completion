@@ -1,5 +1,8 @@
 # Llama Terminal Completion
+
+## Table of Contents
 - [Llama Terminal Completion](#llama-terminal-completion)
+  - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
     - [Llama.cpp installation](#llamacpp-installation)
     - [Llama Terminal Completion installation](#llama-terminal-completion-installation)
