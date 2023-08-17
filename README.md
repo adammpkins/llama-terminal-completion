@@ -9,9 +9,9 @@ This Python script interacts with the [llama.cpp](https://github.com/ggerganov/l
 ### Llama.cpp installation
 1. Clone the 'llama.cpp' repository to your local machine
 ```bash
-git clone https://github.com/ggerganov/llama-cpp.git
+git clone https://github.com/ggerganov/llamacpp.git
 ```
-2. Build the llama.cpp library by following the instructions in the llama-cpp repository. A good tutorial for this can be found at [How to Run LLMs Locally](https://wandb.ai/capecape/LLMs/reports/How-to-Run-LLMs-Locally--Vmlldzo0Njg5NzMx)
+2. Build the llama.cpp library by following the instructions in the llama.cpp repository. A good tutorial for this can be found at [How to Run LLMs Locally](https://wandb.ai/capecape/LLMs/reports/How-to-Run-LLMs-Locally--Vmlldzo0Njg5NzMx)
 
 ### Llama Terminal Completion installation
 1. Clone the llama-terminal-completion repository to your local machine:
@@ -29,7 +29,7 @@ Before using this script, you need to set up the `LLAMA_COMPLETION_DIR` and `LLA
 export LLAMA_COMPLETION_DIR="/path/to/llama-terminal-completion/"
 export LLAMA_CPP_DIR="/path/to/llama.cpp/"
 ```
-Replace /path/to/llama-terminal-completion/ and /path/to/llama-cpp/ with the actual paths to the respective directories on your system.
+Replace /path/to/llama-terminal-completion/ and /path/to/llama.cpp/ with the actual paths to the respective directories on your system.
 
 ## Usage
 Open a terminal window.
