@@ -70,7 +70,7 @@ For more options, you can run:
 ```bash
 python3 ask_llama.py --help
 ```
-It's output is as follows:
+Its output is as follows:
     
 ```bash
 Usage: python3 ask_llama.py [prompt]
