@@ -1,5 +1,5 @@
 # Llama Terminal Completion
-Ever wish you could look up Linux commands or ask questions and receive responses from the terminal? You probably need a paid service or an API key with paid usage, right? Not with Llama Terminal Completion. Instead, we'll Run a Large Language Model (think ChatGPT) locally, on your personal machine, and generate responses from there.
+Ever wish you could look up Linux commands or ask questions and receive responses from the terminal? You probably need a paid service, an API key with paid usage, or at least an internet connection, right? Not with Llama Terminal Completion. Instead, we'll Run a Large Language Model (think ChatGPT) locally, on your personal machine, and generate responses from there.
 
 ## Table of Contents
 - [Llama Terminal Completion](#llama-terminal-completion)
