@@ -31,7 +31,7 @@ This Python script interacts with the [llama.cpp](https://github.com/ggerganov/l
 ```bash
 git clone https://github.com/ggerganov/llama.cpp.git
 ```
-2. Build the llama.cpp library by following the instructions in the llama.cpp repository. A good tutorial for this can be found at [How to Run LLMs Locally](https://wandb.ai/capecape/LLMs/reports/How-to-Run-LLMs-Locally--Vmlldzo0Njg5NzMx)
+2. Build the llama.cpp library by following the instructions in the llama.cpp repository. A good tutorial for this can be found on the official llama.cpp [README](https://github.com/ggerganov/llama.cpp/blob/master/README.md)
 
 ### Llama Terminal Completion installation
 1. Clone the llama-terminal-completion repository to your local machine:
