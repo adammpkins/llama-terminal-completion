@@ -7,7 +7,7 @@ Ever wish you could look up Linux commands or ask questions and receive response
 Website: [http://adammpkins.github.io/llamaterm](https://adammpkins.github.io/llamaterm)
 
 ## Table of Contents
-- [Llama Terminal Completion](#llama-terminal-completion)
+- [LlamaTerm](#llamaterm)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
     - [Llama.cpp installation](#llamacpp-installation)
@@ -43,12 +43,16 @@ git clone https://github.com/adammpkins/llama-terminal-completion.git
 
 ### Environment Variables
 
-Before using this script, you need to set up the `LLAMA_COMPLETION_DIR` and `LLAMA_CPP_DIR` environment variables. These variables point to the directories where the `llama-terminal-completion` and `llama.cpp` files are located, respectively. You can set these variables in your shell configuration file (e.g., `.bashrc` or `.zshrc`) like this:
+Before using this script, you need to set up the `LLAMA_COMPLETION_DIR`, `LLAMA_CPP_DIR`, and `LLAMATERM_MODEL_FILE` environment variables. These variables point to the directories where the `llama-terminal-completion` and `llama.cpp` files are located, respectively. You can set these variables in your shell configuration file (e.g., `.bashrc` or `.zshrc`) like this:
 
 ```bash
 export LLAMA_COMPLETION_DIR="/path/to/llama-terminal-completion/"
 export LLAMA_CPP_DIR="/path/to/llama.cpp/"
+export LLAMATERM_MODEL_FILE="name_of_model_file.gguf"
 ```
+
+If your models are organized into 7B, 13B, and 30B and 65B folders, you can set the `LLAMATERM_MODEL_FILE` variable to the name of the model file you want to use by prepending the model file name with the folder name. For example, if you want to use the 12B model, you would set the `LLAMATERM_MODEL_FILE` variable to `12B/name_of_model_file.gguf`.
+
 Replace /path/to/llama-terminal-completion/ and /path/to/llama.cpp/ with the actual paths to the respective directories on your system.
 
 ## Usage

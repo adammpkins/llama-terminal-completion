@@ -7,8 +7,11 @@ from pprint import pprint
 # Example in .bashrc or .zshrc. Update the paths to match your system:
 # export LLAMA_COMPLETION_DIR="$HOME/Development/llama-terminal-completion/"
 # export LLAMA_CPP_DIR="$HOME/Development/llama-cpp/"
+# export LLAMATERM_MODEL_FILE="mistral-7b-instruct-v0.2.Q5_K_S.gguf" or "7B/ggml-model-q4_0.gguf", etc.
 llama_completion_dir = os.environ["LLAMA_COMPLETION_DIR"]
 llama_cpp_dir = os.environ["LLAMA_CPP_DIR"]
+llama_models_dir = llama_cpp_dir + "models/"
+model_file = os.environ["LLAMATERM_MODEL_FILE"]
 
 
 # Get the arguments passed to the program
@@ -92,8 +95,7 @@ def run_llama_request(prompt):
     os.system(
         llama_cpp_dir
         + "main -m "
-        + llama_cpp_dir
-        + "/models/7B/ggml-model-q4_0.gguf -p 'The following command is a single Linux command that will "
+        + llama_models_dir + model_file + " -p 'The following command is a single Linux command that will "
         + prompt
         + ".: $ `' -n 25 --top-p 0.5 --top-k 30 --ctx-size 256  --repeat-penalty 1.0 >> "
         + llama_completion_dir
@@ -106,8 +108,7 @@ def run_llama_question(prompt):
     os.system(
         llama_cpp_dir
         + "main -m "
-        + llama_cpp_dir
-        + "models/7B/ggml-model-q4_0.gguf -p 'The following is a trancript of a conversation with a virtual assistant. The assistant only provides correct answers to questions. \n Assistant: What can I help you with today? \n User:"
+        + llama_models_dir + model_file + " -p 'The following is a trancript of a conversation with a virtual assistant. The assistant only provides correct answers to questions. \n Assistant: What can I help you with today? \n User:"
         + prompt
         + "\n Assistant:' -n 100 --top-p 0.5 --top-k 30 --ctx-size 256  --repeat-penalty 1.0 >> "
         + llama_completion_dir
