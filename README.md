@@ -2,7 +2,7 @@
 
 ![LlamaTerm Logo](llama-md.png)
 
-Ever wish you could look up Linux commands or ask questions and receive responses from the terminal? You probably need a paid service, an API key with paid usage, or at least an internet connection, right? Not with Llama Terminal Completion. Instead, we'll Run a Large Language Model (think ChatGPT) locally, on your personal machine, and generate responses from there.
+Ever wish you could look up Linux commands or ask questions and receive responses from the terminal? You probably need a paid service, an API key with paid usage, or at least an internet connection, right? Not with Llama Terminal Completion. Instead, we'll run a Large Language Model (think ChatGPT) locally, on your personal machine, and generate responses from there.
 
 Website: [http://adammpkins.github.io/llamaterm](https://adammpkins.github.io/llamaterm)
 
