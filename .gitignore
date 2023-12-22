@@ -1,7 +1,7 @@
-history.txt
-main.log
-llama_output.txt
-llama_question.txt
-question_history.txt
+*.log
+*.txt
+.env
+.env~
+llama.cpp/
 .vscode/
 __pycache__/
