@@ -29,9 +29,9 @@ This Python script interacts with the [llama.cpp](https://github.com/ggerganov/l
 ## Installation
 ### Scripted installation
 This installation method clones and compiles the llama.cpp repository using huggyllama/llama-7b as the default model.
-1. Clone the 'llama.cpp' repository to your local machine:
+1. Clone the 'llama-terminal-completion' repository to your local machine:
 ```bash
-git clone https://github.com/ggerganov/llama.cpp.git
+git clone https://github.com/adammpkins/llama-terminal-completion.git
 ```
 2. Enter the repository folder:
 ```bash
