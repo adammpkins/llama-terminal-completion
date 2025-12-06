@@ -1,7 +1,27 @@
-*.log
-*.txt
-.env
-.env~
-llama.cpp/
+# Binaries
+bin/
+*.exe
+
+# Go
+*.test
+*.out
+
+# IDE
+.idea/
 .vscode/
-__pycache__/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (user-specific)
+config.yaml
+.ltrc
+.ltrc.yaml
+
+# History
+history.json
+.lt_history.json

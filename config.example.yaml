@@ -1,0 +1,30 @@
+# Default endpoint configuration
+base_url: http://localhost:11434/v1
+model: llama3.2
+api_key: ""
+
+# Behavior settings
+max_tokens: 1024
+temperature: 0.7
+stream: true
+confirm_commands: true
+shell: /bin/zsh
+
+# Examples for different providers:
+#
+# For Ollama (default):
+#   base_url: http://localhost:11434/v1
+#   model: llama3.2
+#
+# For LM Studio:
+#   base_url: http://localhost:1234/v1
+#   model: local-model
+#
+# For OpenAI:
+#   base_url: https://api.openai.com/v1
+#   model: gpt-4o-mini
+#   api_key: sk-...
+#
+# For llama.cpp server:
+#   base_url: http://localhost:8080/v1
+#   model: default

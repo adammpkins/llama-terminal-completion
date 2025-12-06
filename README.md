@@ -1,140 +1,162 @@
 # LlamaTerm
 
-![LlamaTerm Logo](llama-md.png)
+![LlamaTerm Logo](old-project/llama-md.png)
 
-Ever wish you could look up Linux commands or ask questions and receive responses from the terminal? You probably need a paid service, an API key with paid usage, or at least an internet connection, right? Not with Llama Terminal Completion. Instead, we'll run a Large Language Model (think ChatGPT) locally, on your personal machine, and generate responses from there.
-
-Website: [http://adammpkins.github.io/llamaterm](https://adammpkins.github.io/llamaterm)
-
-## Table of Contents
-- [LlamaTerm](#llamaterm)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-      - [Scripted installation](#scripted-installation)
-      - [Manual installation](#manual-installation)
-        - [Llama.cpp installation](#llamacpp-installation)
-        - [Llama Terminal Completion installation](#llama-terminal-completion-installation)
-    - [Environment Variables](#environment-variables)
-  - [Usage](#usage)
-    - [Alias](#alias)
-  - [Contributing](#contributing)
-  - [License](#license)
-    
-![image](https://github.com/adammpkins/llama-terminal-completion/blob/main/readme.gif)
-
-This Python script interacts with the [llama.cpp](https://github.com/ggerganov/llama.cpp) library to provide virtual assistant capabilities through the command line. It allows you to ask questions and receive intelligent responses, as well as generate Linux commands based on your prompts.
-
-
-
-## Installation
-### Scripted installation
-This installation method clones and compiles the llama.cpp repository using huggyllama/llama-7b as the default model.
-1. Clone the 'llama.cpp' repository to your local machine:
-```bash
-git clone https://github.com/ggerganov/llama.cpp.git
-```
-2. Enter the repository folder:
-```bash
-cd llama-terminal-completion/
-```
-3. Run the script (the process may take a while):
-```bash
-./configure_llama_linux.sh
-```
-### Manual installation
-#### Llama.cpp installation
-1. Clone the 'llama.cpp' repository to your local machine:
-```bash
-git clone https://github.com/ggerganov/llama.cpp.git
-```
-2. Build the llama.cpp library by following the instructions in the llama.cpp repository. A good tutorial for this can be found on the official llama.cpp [README](https://github.com/ggerganov/llama.cpp/blob/master/README.md)
-
-#### Llama Terminal Completion installation
-1. Clone the llama-terminal-completion repository to your local machine:
-```bash
-git clone https://github.com/adammpkins/llama-terminal-completion.git
-```
-2. Create a `.env` file by copying from `.env_example`:
-```bash
-cp .env_example .env
-```
-3. Set up the environment variables (see below)
-
-
-### Environment Variables
-
-Before using this script, if installed manually, you need to set up the `LLAMA_COMPLETION_DIR`, `LLAMA_CPP_DIR`, `Q_LLAMA_MODEL` and `C_LLAMA_MODEL` environment variables. These variables point to the directories where the `llama-terminal-completion` and `llama.cpp` files are located, respectively. You can set these variables in your `.env` configuration file like this:
+**AI assistant in your terminal** — works with any OpenAI-compatible API.
 
 ```bash
-LLAMA_COMPLETION_DIR="/path/to/llama-terminal-completion/"
-LLAMA_CPP_DIR="/path/to/llama.cpp/"
-Q_LLAMA_MODEL=="name_of_model_file.gguf"
-C_LLAMA_MODEL=="name_of_model_file.gguf"
+lt ask "How do I find large files in Linux?"
+lt cmd "compress all images in this folder"
 ```
 
-If your models are organized into 7B, 13B, and 30B and 65B folders, you can set the `LLAMATERM_MODEL_FILE` variable to the name of the model file you want to use by prepending the model file name with the folder name. For example, if you want to use the 12B model, you would set the `LLAMATERM_MODEL_FILE` variable to `12B/name_of_model_file.gguf`.
+## Features
 
-Replace /path/to/llama-terminal-completion/ and /path/to/llama.cpp/ with the actual paths to the respective directories on your system.
+- 🚀 **Fast** — Single Go binary, <100ms startup
+- 🔌 **Universal** — Works with Ollama, LM Studio, OpenAI, and more
+- 💬 **Streaming** — Real-time response display
+- 🛡️ **Safe** — Command confirmation with dangerous command detection
+- ⚙️ **Configurable** — Config files, env vars, or CLI flags
 
-You can also change the question and command prompt to a text to your liking, as well as the tokens and temperature. Everything can be done by changing the variables in the .env file. Variables starting with `C_` are for commands, and variables starting with `Q_` are for questions.
+## Quick Start
 
-## Usage
-Open a terminal window.
-
-Navigate to the directory where the ask_llama.py script is located.
-
-Run the script with the desired options. Here are some examples:
-
-- To generate a Linux command based on a prompt:
-    ```bash
-    python3 ask_llama.py -c "list the contents of the current directory"
-    ```
-- To ask a question to the virtual assistant:
-
-    ```bash
-    python3 ask_llama.py -q "How does photosynthesis work?"
-    ```
-- To search for a wiki summary with the virtual assistant:
-
-    ```bash
-    python3 ask_llama.py -w "PHP"
-    ```
-
-For more options, you can run:
+### Install
 
 ```bash
-python3 ask_llama.py --help
-```
-Its output is as follows:
-    
-```bash
-usage: ask_llama.py [-h] [-w Wiki] [-c Command] [-q Question] [-n Token]
+# Quick install (requires Go)
+curl -sSL https://raw.githubusercontent.com/adammpkins/llamaterm/main/install.sh | bash
 
-options:
-  -h, --help   show this help message and exit
-  -w Wiki      Get a wiki summary by title
-  -c Command   Predict a command by text
-  -q Question  Ask a question to the virtual assistant
-  -n Token     (Optional) Number of tokens to predict
+# Or build from source
+git clone https://github.com/adammpkins/llamaterm.git
+cd llamaterm
+make install
 ```
 
-### Alias
-You can create an alias for the script in your shell configuration file (e.g., `.bashrc` or `.zshrc`) like this:
+### Shell Completion
 
 ```bash
-alias ask="python3 /path/to/llama-terminal-completion/ask_llama.py -c"
+# Bash
+lt completion bash > /usr/local/etc/bash_completion.d/lt
+
+# Zsh (add to ~/.zshrc)
+source <(lt completion zsh)
+
+# Fish
+lt completion fish > ~/.config/fish/completions/lt.fish
 ```
 
-Then you can run the script like this:
+### Usage
 
 ```bash
-ask "list the contents of the current directory"
+# Ask questions
+lt ask "What is the difference between TCP and UDP?"
+
+# Generate shell commands
+lt cmd "find all .go files modified in the last week"
+
+# Pipe content
+cat error.log | lt ask "What's wrong here?"
 ```
 
-## Contributing
-Contributions to this project are welcome! Feel free to fork the repository, make changes, and submit pull requests.
+### Configuration
+
+LlamaTerm works out of the box with [Ollama](https://ollama.ai) running on localhost.
+
+For other providers, configure via:
+
+1. **Config file** (`~/.config/lt/config.yaml`):
+```yaml
+base_url: https://api.openai.com/v1
+model: gpt-4o-mini
+api_key: sk-...
+```
+
+2. **Environment variables**:
+```bash
+export LT_BASE_URL=https://api.openai.com/v1
+export LT_MODEL=gpt-4o-mini
+export LT_API_KEY=sk-...
+# or
+export OPENAI_API_KEY=sk-...
+```
+
+3. **CLI flags**:
+```bash
+lt --base-url https://api.openai.com/v1 --model gpt-4o ask "Hello"
+```
+
+## Supported Providers
+
+| Provider | Base URL | Notes |
+|----------|----------|-------|
+| Ollama | `http://localhost:11434/v1` | Default, no API key needed |
+| LM Studio | `http://localhost:1234/v1` | Local GUI-based |
+| llama.cpp | `http://localhost:8080/v1` | llama.cpp server |
+| OpenAI | `https://api.openai.com/v1` | Requires API key |
+| Azure OpenAI | Custom | Requires configuration |
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `lt ask <question>` | Ask a question (`-c` to copy) |
+| `lt cmd <description>` | Generate a shell command |
+| `lt quick <description>` | Generate and run immediately |
+| `lt copy <question>` | Ask and copy to clipboard |
+| `lt chat` | Interactive chat session |
+| `lt explain <file>` | Explain code or file contents |
+| `lt fix <error>` | Get help fixing an error |
+| `lt config show` | Show current configuration |
+| `lt config init` | Create config file |
+| `lt history list` | View saved conversations |
+| `lt version` | Show version info |
+
+### Command Flags
+
+```
+Global:
+  --base-url    API base URL
+  --api-key     API key
+  -m, --model   Model to use
+  --no-stream   Disable streaming output
+  --max-tokens  Maximum tokens to generate
+  --temperature Temperature for generation
+
+lt cmd:
+  --dry-run     Show command without running
+  -y, --yes     Run without confirmation
+```
+
+## More Examples
+
+```bash
+# Interactive chat with memory
+lt chat
+
+# Analyze a file
+lt explain main.go
+lt explain config.yaml "What does this configure?"
+
+# Debug errors
+lt fix "Error: module not found"
+npm run build 2>&1 | lt fix
+```
+
+## Development
+
+```bash
+# Download dependencies
+make deps
+
+# Build
+make build
+
+# Run tests
+make test
+
+# Run
+./bin/lt ask "Hello"
+```
 
 ## License
-This project is licensed under the [MIT License](https://choosealicense.com/licenses/mit/)
 
-
+MIT License
