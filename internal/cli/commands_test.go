@@ -484,7 +484,7 @@ func TestConfigShowCommand(t *testing.T) {
 	os.Stdout = w
 
 	// Run the config show command
-	configShowCmd.RunE(configShowCmd, []string{})
+	_ = configShowCmd.RunE(configShowCmd, []string{})
 
 	w.Close()
 	os.Stdout = old
@@ -522,7 +522,7 @@ func TestHistoryListCommand(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	historyListCmd.RunE(historyListCmd, []string{})
+	_ = historyListCmd.RunE(historyListCmd, []string{})
 
 	w.Close()
 	os.Stdout = old
@@ -558,7 +558,7 @@ func TestRunAskWithStreaming(t *testing.T) {
 		var req struct {
 			Stream bool `json:"stream"`
 		}
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		if req.Stream {
 			w.Header().Set("Content-Type", "text/event-stream")
@@ -890,7 +890,7 @@ func TestConfigCommands(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	configShowCmd.RunE(configShowCmd, []string{})
+	_ = configShowCmd.RunE(configShowCmd, []string{})
 
 	w.Close()
 	os.Stdout = old
@@ -1955,7 +1955,7 @@ func TestVersionCommand(t *testing.T) {
 
 	// Execute version command via rootCmd
 	rootCmd.SetArgs([]string{"version"})
-	rootCmd.Execute()
+	_ = rootCmd.Execute()
 
 	w.Close()
 	os.Stdout = old
@@ -1975,7 +1975,7 @@ func TestRootCmdHelp(t *testing.T) {
 	os.Stdout = w
 
 	rootCmd.SetArgs([]string{"--help"})
-	rootCmd.Execute()
+	_ = rootCmd.Execute()
 
 	w.Close()
 	os.Stdout = old
@@ -2220,6 +2220,7 @@ func TestAllInitFunctions(t *testing.T) {
 	for _, cmd := range commands {
 		if cmd == nil {
 			t.Error("Command should not be nil")
+			continue
 		}
 		if cmd.Use == "" {
 			t.Error("Command should have Use defined")

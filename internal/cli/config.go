@@ -69,7 +69,7 @@ var configInitCmd = &cobra.Command{
 			printWarning("Config file already exists at: %s", path)
 			fmt.Print("Overwrite? [y/N]: ")
 			var response string
-			fmt.Scanln(&response)
+			_, _ = fmt.Scanln(&response)
 			if response != "y" && response != "Y" {
 				return nil
 			}
