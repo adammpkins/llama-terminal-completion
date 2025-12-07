@@ -94,7 +94,7 @@ func TestLoadWithConfigFile(t *testing.T) {
 	// Create temp config file
 	tmpDir := t.TempDir()
 	configDir := filepath.Join(tmpDir, "lt")
-	os.MkdirAll(configDir, 0755)
+	_ = os.MkdirAll(configDir, 0755)
 
 	configContent := `
 base_url: https://file.api.com/v1

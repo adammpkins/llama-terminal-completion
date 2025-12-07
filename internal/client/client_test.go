@@ -47,7 +47,7 @@ func TestChatCompletion(t *testing.T) {
 		// Verify request body
 		body, _ := io.ReadAll(r.Body)
 		var req ChatCompletionRequest
-		json.Unmarshal(body, &req)
+		_ = json.Unmarshal(body, &req)
 
 		if req.Model != "test-model" {
 			t.Errorf("Expected model test-model, got %s", req.Model)
@@ -68,7 +68,7 @@ func TestChatCompletion(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -91,7 +91,7 @@ func TestChatCompletion(t *testing.T) {
 func TestChatCompletionError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"error":{"message":"Invalid API key"}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"Invalid API key"}}`))
 	}))
 	defer server.Close()
 
@@ -112,7 +112,7 @@ func TestChatCompletionStream(t *testing.T) {
 		// Verify streaming is requested
 		body, _ := io.ReadAll(r.Body)
 		var req ChatCompletionRequest
-		json.Unmarshal(body, &req)
+		_ = json.Unmarshal(body, &req)
 
 		if req.Stream != true {
 			t.Error("Expected Stream to be true")
@@ -128,7 +128,7 @@ func TestChatCompletionStream(t *testing.T) {
 			`data: [DONE]`,
 		}
 		for _, chunk := range chunks {
-			w.Write([]byte(chunk + "\n\n"))
+			_, _ = w.Write([]byte(chunk + "\n\n"))
 		}
 	}))
 	defer server.Close()
@@ -232,7 +232,7 @@ func TestHandleError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
-				w.Write([]byte(tt.body))
+				_, _ = w.Write([]byte(tt.body))
 			}))
 			defer server.Close()
 
@@ -282,7 +282,7 @@ func TestChatCompletionEmptyChoices(t *testing.T) {
 			Choices: []Choice{},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -373,7 +373,7 @@ func TestChatCompletionWithMaxTokens(t *testing.T) {
 		// Verify max_tokens in request
 		body, _ := io.ReadAll(r.Body)
 		var req ChatCompletionRequest
-		json.Unmarshal(body, &req)
+		_ = json.Unmarshal(body, &req)
 
 		if req.MaxTokens != 2048 {
 			t.Errorf("Expected max_tokens 2048, got %d", req.MaxTokens)
@@ -382,7 +382,7 @@ func TestChatCompletionWithMaxTokens(t *testing.T) {
 		resp := ChatCompletionResponse{
 			Choices: []Choice{{Message: ChatMessage{Content: "response"}}},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -397,7 +397,7 @@ func TestChatCompletionWithTemperature(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var req ChatCompletionRequest
-		json.Unmarshal(body, &req)
+		_ = json.Unmarshal(body, &req)
 
 		if req.Temperature == nil || *req.Temperature != 0.9 {
 			t.Errorf("Expected temperature 0.9, got %v", req.Temperature)
@@ -406,7 +406,7 @@ func TestChatCompletionWithTemperature(t *testing.T) {
 		resp := ChatCompletionResponse{
 			Choices: []Choice{{Message: ChatMessage{Content: "response"}}},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
