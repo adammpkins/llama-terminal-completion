@@ -14,8 +14,17 @@ func TestSaveAndLoadHistory(t *testing.T) {
 	// Create a temp directory
 	tmpDir := t.TempDir()
 	origHome := os.Getenv("HOME")
+	origXDG := os.Getenv("XDG_CONFIG_HOME")
 	_ = os.Setenv("HOME", tmpDir)
-	defer func() { _ = os.Setenv("HOME", origHome) }()
+	_ = os.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	defer func() {
+		_ = os.Setenv("HOME", origHome)
+		if origXDG != "" {
+			_ = os.Setenv("XDG_CONFIG_HOME", origXDG)
+		} else {
+			_ = os.Unsetenv("XDG_CONFIG_HOME")
+		}
+	}()
 
 	// Create test messages
 	messages := []client.ChatMessage{
@@ -56,8 +65,17 @@ func TestLoadHistoryEmpty(t *testing.T) {
 	// Create a temp directory with no history
 	tmpDir := t.TempDir()
 	origHome := os.Getenv("HOME")
+	origXDG := os.Getenv("XDG_CONFIG_HOME")
 	_ = os.Setenv("HOME", tmpDir)
-	defer func() { _ = os.Setenv("HOME", origHome) }()
+	_ = os.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	defer func() {
+		_ = os.Setenv("HOME", origHome)
+		if origXDG != "" {
+			_ = os.Setenv("XDG_CONFIG_HOME", origXDG)
+		} else {
+			_ = os.Unsetenv("XDG_CONFIG_HOME")
+		}
+	}()
 
 	history, err := loadHistory()
 	if err != nil {
