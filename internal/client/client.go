@@ -33,13 +33,7 @@ func NewClient(baseURL, apiKey, model string) *Client {
 
 // ChatCompletion sends a chat completion request and returns the full response
 func (c *Client) ChatCompletion(messages []ChatMessage, maxTokens int, temperature float64) (*ChatCompletionResponse, error) {
-	req := ChatCompletionRequest{
-		Model:       c.Model,
-		Messages:    messages,
-		MaxTokens:   maxTokens,
-		Temperature: temperature,
-		Stream:      false,
-	}
+	req := c.buildRequest(messages, maxTokens, temperature, false)
 
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -71,16 +65,72 @@ func (c *Client) ChatCompletion(messages []ChatMessage, maxTokens int, temperatu
 	return &result, nil
 }
 
+// usesMaxCompletionTokens returns true for models that require max_completion_tokens instead of max_tokens
+func (c *Client) usesMaxCompletionTokens() bool {
+	model := strings.ToLower(c.Model)
+	// Models that require max_completion_tokens:
+	// - o1 series (o1, o1-mini, o1-preview)
+	// - gpt-4o series (but not gpt-4-turbo which uses max_tokens)
+	// - gpt-5 and future models
+	if strings.HasPrefix(model, "o1") {
+		return true
+	}
+	// gpt-4o and variants use max_completion_tokens
+	if strings.Contains(model, "gpt-4o") {
+		return true
+	}
+	// gpt-5 and future models (gpt-5, gpt-6, etc.)
+	if strings.HasPrefix(model, "gpt-5") || strings.HasPrefix(model, "gpt-6") ||
+		strings.HasPrefix(model, "gpt-7") || strings.HasPrefix(model, "gpt-8") ||
+		strings.HasPrefix(model, "gpt-9") {
+		return true
+	}
+	return false
+}
+
+// buildRequest creates a ChatCompletionRequest with the correct token parameter for the model
+func (c *Client) buildRequest(messages []ChatMessage, maxTokens int, temperature float64, stream bool) ChatCompletionRequest {
+	req := ChatCompletionRequest{
+		Model:    c.Model,
+		Messages: messages,
+		Stream:   stream,
+	}
+
+	// Determine how to set token limits based on model
+	model := strings.ToLower(c.Model)
+	isO1 := strings.HasPrefix(model, "o1")
+	isGPT4O := strings.Contains(model, "gpt-4o")
+	isGPT5Plus := strings.HasPrefix(model, "gpt-5") ||
+		strings.HasPrefix(model, "gpt-6") ||
+		strings.HasPrefix(model, "gpt-7") ||
+		strings.HasPrefix(model, "gpt-8") ||
+		strings.HasPrefix(model, "gpt-9")
+
+	// gpt-5+ models: skip token limits entirely (let API use default)
+	// o1 and gpt-4o: use max_completion_tokens
+	// older models: use max_tokens
+	if isGPT5Plus {
+		// Don't set any token limit for gpt-5+
+	} else if isO1 || isGPT4O {
+		req.MaxCompletionTokens = maxTokens
+	} else {
+		req.MaxTokens = maxTokens
+	}
+
+	// Only set temperature for models that support it
+	// o1 series and gpt-5+ don't support custom temperature
+	supportsTemperature := !isO1 && !isGPT5Plus
+	if supportsTemperature {
+		req.Temperature = &temperature
+	}
+
+	return req
+}
+
 // ChatCompletionStream sends a streaming chat completion request
 // The callback is called for each content chunk received
 func (c *Client) ChatCompletionStream(messages []ChatMessage, maxTokens int, temperature float64, callback func(content string)) error {
-	req := ChatCompletionRequest{
-		Model:       c.Model,
-		Messages:    messages,
-		MaxTokens:   maxTokens,
-		Temperature: temperature,
-		Stream:      true,
-	}
+	req := c.buildRequest(messages, maxTokens, temperature, true)
 
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -105,6 +155,33 @@ func (c *Client) ChatCompletionStream(messages []ChatMessage, maxTokens int, tem
 	}
 
 	return c.processStream(resp.Body, callback)
+}
+
+// ListModels fetches available models from the /models endpoint
+func (c *Client) ListModels() (*ModelsResponse, error) {
+	httpReq, err := http.NewRequest("GET", c.BaseURL+"/models", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	c.setHeaders(httpReq)
+
+	resp, err := c.HTTPClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, c.handleError(resp)
+	}
+
+	var result ModelsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
 }
 
 // setHeaders sets the required HTTP headers for API requests

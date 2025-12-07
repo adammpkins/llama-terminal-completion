@@ -67,6 +67,9 @@ Examples:
 			cfg.Temperature = temperature
 		}
 
+		// Initialize markdown renderer for terminal output
+		initMarkdownRenderer()
+
 		return nil
 	},
 }

@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"regexp"
@@ -36,6 +37,9 @@ func init() {
 	cmdCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show command without running")
 	cmdCmd.Flags().BoolVarP(&autoRun, "yes", "y", false, "Run command without confirmation")
 }
+
+// stdinForConfirm can be overridden in tests
+var stdinForConfirm io.Reader = nil
 
 func runCmd(cmd *cobra.Command, args []string) error {
 	// Get the description from args or stdin
@@ -103,7 +107,12 @@ Rules:
 	// Auto-run or ask for confirmation
 	if !autoRun && cfg.ConfirmCommands {
 		fmt.Print("Run this command? [y/N]: ")
-		reader := bufio.NewReader(os.Stdin)
+		var reader *bufio.Reader
+		if stdinForConfirm != nil {
+			reader = bufio.NewReader(stdinForConfirm)
+		} else {
+			reader = bufio.NewReader(os.Stdin)
+		}
 		response, _ := reader.ReadString('\n')
 		response = strings.TrimSpace(strings.ToLower(response))
 

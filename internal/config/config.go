@@ -81,12 +81,18 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
+// Injectable functions for testing
+var (
+	configUserConfigDirFunc = os.UserConfigDir
+	configUserHomeDirFunc   = os.UserHomeDir
+)
+
 // GetConfigPath returns the path where config file should be stored
 func GetConfigPath() string {
-	if configDir, err := os.UserConfigDir(); err == nil {
+	if configDir, err := configUserConfigDirFunc(); err == nil {
 		return filepath.Join(configDir, "lt", "config.yaml")
 	}
-	if home, err := os.UserHomeDir(); err == nil {
+	if home, err := configUserHomeDirFunc(); err == nil {
 		return filepath.Join(home, ".ltrc.yaml")
 	}
 	return ".ltrc.yaml"

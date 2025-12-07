@@ -95,7 +95,7 @@ func runCopy(cmd *cobra.Command, args []string) error {
 	messages := []client.ChatMessage{
 		{
 			Role:    "system",
-			Content: "You are a helpful AI assistant. Provide clear, concise, and accurate answers.",
+			Content: "You are a helpful AI assistant. Provide clear, concise, and accurate answers. IMPORTANT: Do NOT use any markdown formatting. No **bold**, no ### headers, no ``` code blocks. Write everything as plain text.",
 		},
 		{
 			Role:    "user",
@@ -122,7 +122,7 @@ func runCopy(cmd *cobra.Command, args []string) error {
 		}
 		if len(resp.Choices) > 0 {
 			content := resp.Choices[0].Message.Content
-			fmt.Print(content)
+			fmt.Println(content)
 			response.WriteString(content)
 		}
 	}

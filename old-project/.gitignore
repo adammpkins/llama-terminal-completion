@@ -1,7 +1,0 @@
-*.log
-*.txt
-.env
-.env~
-llama.cpp/
-.vscode/
-__pycache__/

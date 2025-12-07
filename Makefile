@@ -53,6 +53,12 @@ clean:
 test:
 	$(GOTEST) -v ./...
 
+## test-coverage: Run tests with coverage report
+test-coverage:
+	$(GOTEST) -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+	@echo "\nTo view HTML report: go tool cover -html=coverage.out"
+
 ## deps: Download dependencies
 deps:
 	$(GOMOD) download

@@ -7,30 +7,48 @@ import (
 	"strings"
 )
 
+// Injectable functions for testing
+var (
+	// getOS returns the operating system name (can be overridden in tests)
+	getOS = func() string { return runtime.GOOS }
+
+	// lookPath wraps exec.LookPath (can be overridden in tests)
+	lookPath = exec.LookPath
+
+	// runClipboardCmd executes the clipboard command (can be overridden in tests)
+	runClipboardCmd = func(cmd *exec.Cmd) error { return cmd.Run() }
+)
+
 // copyToClipboard copies text to the system clipboard
 func copyToClipboard(text string) error {
-	var cmd *exec.Cmd
-
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("pbcopy")
-	case "linux":
-		// Try xclip first, then xsel
-		if _, err := exec.LookPath("xclip"); err == nil {
-			cmd = exec.Command("xclip", "-selection", "clipboard")
-		} else if _, err := exec.LookPath("xsel"); err == nil {
-			cmd = exec.Command("xsel", "--clipboard", "--input")
-		} else {
-			return fmt.Errorf("no clipboard tool found (install xclip or xsel)")
-		}
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "clip")
-	default:
-		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	cmd, err := getClipboardCommand()
+	if err != nil {
+		return err
 	}
 
 	cmd.Stdin = strings.NewReader(text)
-	return cmd.Run()
+	return runClipboardCmd(cmd)
+}
+
+// getClipboardCommand returns the appropriate clipboard command for the current OS
+func getClipboardCommand() (*exec.Cmd, error) {
+	switch getOS() {
+	case "darwin":
+		return exec.Command("pbcopy"), nil
+	case "linux":
+		// Try xclip first, then xsel
+		if _, err := lookPath("xclip"); err == nil {
+			return exec.Command("xclip", "-selection", "clipboard"), nil
+		} else if _, err := lookPath("xsel"); err == nil {
+			return exec.Command("xsel", "--clipboard", "--input"), nil
+		} else {
+			return nil, fmt.Errorf("no clipboard tool found (install xclip or xsel)")
+		}
+	case "windows":
+		return exec.Command("cmd", "/c", "clip"), nil
+	default:
+		return nil, fmt.Errorf("unsupported platform: %s", getOS())
+	}
 }
 
 // extractCodeBlocks extracts code blocks from markdown text

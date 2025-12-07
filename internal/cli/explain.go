@@ -62,7 +62,7 @@ func runExplain(cmd *cobra.Command, args []string) error {
 	messages := []client.ChatMessage{
 		{
 			Role:    "system",
-			Content: "You are an expert code reviewer and technical writer. Explain code and files clearly and concisely. Point out important details, potential issues, and best practices when relevant.",
+			Content: "You are an expert code reviewer and technical writer. Explain code and files clearly and concisely. Point out important details, potential issues, and best practices. IMPORTANT: Do NOT use any markdown formatting. No **bold**, no ### headers, no ``` code blocks. Write everything as plain text.",
 		},
 		{
 			Role:    "user",

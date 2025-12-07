@@ -94,12 +94,20 @@ func init() {
 	historyCmd.AddCommand(historyClearCmd)
 }
 
+// Injectable functions for testing
+var (
+	userConfigDirFunc = os.UserConfigDir
+	userHomeDirFunc   = os.UserHomeDir
+	mkdirAllFunc      = os.MkdirAll
+	writeFileFunc     = os.WriteFile
+)
+
 // getHistoryPath returns the path to the history file
 func getHistoryPath() string {
-	if configDir, err := os.UserConfigDir(); err == nil {
+	if configDir, err := userConfigDirFunc(); err == nil {
 		return filepath.Join(configDir, "lt", "history.json")
 	}
-	if home, err := os.UserHomeDir(); err == nil {
+	if home, err := userHomeDirFunc(); err == nil {
 		return filepath.Join(home, ".lt_history.json")
 	}
 	return ".lt_history.json"
@@ -146,7 +154,7 @@ func saveHistory(messages []client.ChatMessage, model string) error {
 
 	// Ensure directory exists
 	path := getHistoryPath()
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := mkdirAllFunc(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
 
@@ -155,5 +163,5 @@ func saveHistory(messages []client.ChatMessage, model string) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return writeFileFunc(path, data, 0644)
 }

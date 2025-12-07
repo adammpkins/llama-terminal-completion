@@ -3,12 +3,19 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/adammpkins/llamaterm/internal/client"
 	"github.com/spf13/cobra"
 )
+
+// stdinForChat can be overridden in tests
+var stdinForChat io.Reader = nil
+
+// chatOutputWriter can be overridden in tests (defaults to os.Stdout)
+var chatOutputWriter io.Writer = nil
 
 var chatCmd = &cobra.Command{
 	Use:   "chat",
@@ -29,6 +36,37 @@ func init() {
 }
 
 func runChat(cmd *cobra.Command, args []string) error {
+	// Check if we're in a TTY for the beautiful TUI
+	// If stdin is being injected (for tests) or we're not in a TTY, use simple mode
+	if stdinForChat == nil && isTerminal() {
+		return runChatTUI()
+	}
+
+	// Fallback to simple mode for non-TTY or testing
+	var reader *bufio.Reader
+	if stdinForChat != nil {
+		reader = bufio.NewReader(stdinForChat)
+	} else {
+		reader = bufio.NewReader(os.Stdin)
+	}
+
+	// Use injected output or default to os.Stdout
+	output := chatOutputWriter
+	if output == nil {
+		output = os.Stdout
+	}
+
+	return runChatWithReader(reader, output)
+}
+
+// isTerminal checks if we're running in an interactive terminal
+func isTerminal() bool {
+	fileInfo, _ := os.Stdout.Stat()
+	return (fileInfo.Mode() & os.ModeCharDevice) != 0
+}
+
+// runChatWithReader is the core chat function that can be tested
+func runChatWithReader(reader *bufio.Reader, output io.Writer) error {
 	apiClient := client.NewClient(cfg.BaseURL, cfg.APIKey, cfg.Model)
 
 	// Conversation history
@@ -39,21 +77,19 @@ func runChat(cmd *cobra.Command, args []string) error {
 		},
 	}
 
-	reader := bufio.NewReader(os.Stdin)
-
 	// Print welcome message
-	fmt.Println()
-	printInfo("╭─────────────────────────────────────────╮\n")
-	printInfo("│         LlamaTerm Chat Session          │\n")
-	printInfo("│   Type 'exit' or 'quit' to end chat     │\n")
-	printInfo("╰─────────────────────────────────────────╯\n")
-	fmt.Printf("  Model: %s\n", cfg.Model)
-	fmt.Printf("  API:   %s\n", cfg.BaseURL)
-	fmt.Println()
+	fmt.Fprintln(output)
+	fmt.Fprintf(output, "╭─────────────────────────────────────────╮\n")
+	fmt.Fprintf(output, "│         LlamaTerm Chat Session          │\n")
+	fmt.Fprintf(output, "│   Type 'exit' or 'quit' to end chat     │\n")
+	fmt.Fprintf(output, "╰─────────────────────────────────────────╯\n")
+	fmt.Fprintf(output, "  Model: %s\n", cfg.Model)
+	fmt.Fprintf(output, "  API:   %s\n", cfg.BaseURL)
+	fmt.Fprintln(output)
 
 	for {
 		// Print prompt
-		printInfo("You: ")
+		fmt.Fprint(output, "You: ")
 
 		// Read user input
 		input, err := reader.ReadString('\n')
@@ -68,28 +104,29 @@ func runChat(cmd *cobra.Command, args []string) error {
 			continue
 		}
 		if input == "exit" || input == "quit" || input == "q" {
-			fmt.Println()
-			printSuccess("Goodbye! 👋")
+			fmt.Fprintln(output)
+			fmt.Fprintln(output, "Goodbye! 👋")
 			return nil
 		}
 
 		// Special commands
 		if input == "/clear" {
 			messages = messages[:1] // Keep system prompt
-			printInfo("Chat history cleared.\n\n")
+			fmt.Fprintln(output, "Chat history cleared.")
+			fmt.Fprintln(output)
 			continue
 		}
 		if input == "/help" {
-			printChatHelp()
+			printChatHelpTo(output)
 			continue
 		}
 		if input == "/save" {
 			if err := saveHistory(messages, cfg.Model); err != nil {
-				printError("Failed to save: %v", err)
+				fmt.Fprintf(output, "Failed to save: %v\n", err)
 			} else {
-				printSuccess("✓ Conversation saved")
+				fmt.Fprintln(output, "✓ Conversation saved")
 			}
-			fmt.Println()
+			fmt.Fprintln(output)
 			continue
 		}
 
@@ -100,27 +137,27 @@ func runChat(cmd *cobra.Command, args []string) error {
 		})
 
 		// Get response
-		fmt.Println()
-		printInfo("Assistant: ")
+		fmt.Fprintln(output)
+		fmt.Fprint(output, "Assistant: ")
 
 		var responseBuilder strings.Builder
 
 		if cfg.Stream {
 			err = apiClient.ChatCompletionStream(messages, cfg.MaxTokens, cfg.Temperature, func(content string) {
-				fmt.Print(content)
+				fmt.Fprint(output, content)
 				responseBuilder.WriteString(content)
 			})
 		} else {
 			resp, err := apiClient.ChatCompletion(messages, cfg.MaxTokens, cfg.Temperature)
 			if err == nil && len(resp.Choices) > 0 {
 				content := resp.Choices[0].Message.Content
-				fmt.Print(content)
+				fmt.Fprint(output, content)
 				responseBuilder.WriteString(content)
 			}
 		}
 
 		if err != nil {
-			printError("%v", err)
+			fmt.Fprintf(output, "Error: %v\n", err)
 			// Remove failed user message
 			messages = messages[:len(messages)-1]
 		} else {
@@ -131,17 +168,21 @@ func runChat(cmd *cobra.Command, args []string) error {
 			})
 		}
 
-		fmt.Println()
-		fmt.Println()
+		fmt.Fprintln(output)
+		fmt.Fprintln(output)
 	}
 }
 
 func printChatHelp() {
-	fmt.Println()
-	printInfo("Chat Commands:\n")
-	fmt.Println("  /clear  - Clear conversation history")
-	fmt.Println("  /save   - Save conversation to history")
-	fmt.Println("  /help   - Show this help")
-	fmt.Println("  exit    - End the chat session")
-	fmt.Println()
+	printChatHelpTo(os.Stdout)
+}
+
+func printChatHelpTo(w io.Writer) {
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Chat Commands:")
+	fmt.Fprintln(w, "  /clear  - Clear conversation history")
+	fmt.Fprintln(w, "  /save   - Save conversation to history")
+	fmt.Fprintln(w, "  /help   - Show this help")
+	fmt.Fprintln(w, "  exit    - End the chat session")
+	fmt.Fprintln(w)
 }

@@ -3,12 +3,16 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/adammpkins/llamaterm/internal/client"
 	"github.com/spf13/cobra"
 )
+
+// stdinForError can be overridden in tests
+var stdinForError io.Reader = nil
 
 var fixCmd = &cobra.Command{
 	Use:   "fix [error message]",
@@ -46,12 +50,12 @@ func runFix(cmd *cobra.Command, args []string) error {
 
 	systemPrompt := `You are an expert debugger and problem solver. Analyze the error message and provide:
 
-1. **What went wrong**: Brief explanation of the error
-2. **Likely cause**: Most probable reason for this error
-3. **How to fix it**: Step-by-step instructions to resolve the issue
-4. **Prevention**: How to avoid this error in the future (if applicable)
+1) What went wrong - Brief explanation of the error
+2) Likely cause - Most probable reason for this error  
+3) How to fix it - Step-by-step instructions to resolve the issue
+4) Prevention - How to avoid this error in the future (if applicable)
 
-Be concise but thorough. If you need more context, mention what additional information would help.`
+IMPORTANT: Do NOT use any markdown formatting. No **bold**, no ### headers, no backticks. Write everything as plain text.`
 
 	messages := []client.ChatMessage{
 		{
@@ -60,7 +64,7 @@ Be concise but thorough. If you need more context, mention what additional infor
 		},
 		{
 			Role:    "user",
-			Content: fmt.Sprintf("Please help me fix this error:\n\n```\n%s\n```", errorMsg),
+			Content: fmt.Sprintf("Please help me fix this error:\n\n%s", errorMsg),
 		},
 	}
 
@@ -93,21 +97,30 @@ func getErrorMessage(args []string) (string, error) {
 		return args[0], nil
 	}
 
+	// If a test reader is set, use it
+	if stdinForError != nil {
+		return readErrorFromStdin(stdinForError)
+	}
+
 	// Check if stdin has data (pipe)
-	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) == 0 {
+	if stdinStatFunc() {
 		// Data is being piped - read all of it
-		reader := bufio.NewReader(os.Stdin)
-		var builder strings.Builder
-		for {
-			line, err := reader.ReadString('\n')
-			builder.WriteString(line)
-			if err != nil {
-				break
-			}
-		}
-		return strings.TrimSpace(builder.String()), nil
+		return readErrorFromStdin(os.Stdin)
 	}
 
 	return "", nil
+}
+
+// readErrorFromStdin reads all content from a reader
+func readErrorFromStdin(r io.Reader) (string, error) {
+	reader := bufio.NewReader(r)
+	var builder strings.Builder
+	for {
+		line, err := reader.ReadString('\n')
+		builder.WriteString(line)
+		if err != nil {
+			break
+		}
+	}
+	return strings.TrimSpace(builder.String()), nil
 }

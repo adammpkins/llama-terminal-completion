@@ -5,6 +5,7 @@ bin/
 # Go
 *.test
 *.out
+coverage.out
 
 # IDE
 .idea/

@@ -8,11 +8,12 @@ type ChatMessage struct {
 
 // ChatCompletionRequest represents an OpenAI-compatible chat completion request
 type ChatCompletionRequest struct {
-	Model       string        `json:"model"`
-	Messages    []ChatMessage `json:"messages"`
-	MaxTokens   int           `json:"max_tokens,omitempty"`
-	Temperature float64       `json:"temperature,omitempty"`
-	Stream      bool          `json:"stream"`
+	Model               string        `json:"model"`
+	Messages            []ChatMessage `json:"messages"`
+	MaxTokens           int           `json:"max_tokens,omitempty"`
+	MaxCompletionTokens int           `json:"max_completion_tokens,omitempty"`
+	Temperature         *float64      `json:"temperature,omitempty"`
+	Stream              bool          `json:"stream"`
 }
 
 // ChatCompletionResponse represents a non-streaming chat completion response
@@ -56,4 +57,18 @@ type ErrorResponse struct {
 		Type    string `json:"type"`
 		Code    string `json:"code"`
 	} `json:"error"`
+}
+
+// Model represents a single model from the models endpoint
+type Model struct {
+	ID      string `json:"id"`
+	Object  string `json:"object"`
+	Created int64  `json:"created"`
+	OwnedBy string `json:"owned_by"`
+}
+
+// ModelsResponse represents the response from the /models endpoint
+type ModelsResponse struct {
+	Object string  `json:"object"`
+	Data   []Model `json:"data"`
 }

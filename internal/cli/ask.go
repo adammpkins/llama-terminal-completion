@@ -3,12 +3,16 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/adammpkins/llamaterm/internal/client"
 	"github.com/spf13/cobra"
 )
+
+// stdinForQuestion can be overridden in tests
+var stdinForQuestion io.Reader = nil
 
 var askCmd = &cobra.Command{
 	Use:   "ask [question]",
@@ -41,7 +45,7 @@ func runAsk(cmd *cobra.Command, args []string) error {
 	messages := []client.ChatMessage{
 		{
 			Role:    "system",
-			Content: "You are a helpful AI assistant. Provide clear, concise, and accurate answers.",
+			Content: "You are a helpful AI assistant. Provide clear, concise, and accurate answers. IMPORTANT: Do NOT use any markdown formatting. No **bold**, no *italics*, no ### headers, no ``` code blocks, no bullet points with -, no numbered lists with 1. etc. Write everything as plain flowing text. For code, just write it directly without any surrounding backticks.",
 		},
 		{
 			Role:    "user",
@@ -85,6 +89,12 @@ func runAsk(cmd *cobra.Command, args []string) error {
 	return err
 }
 
+// stdinStatFunc returns whether stdin is a pipe (can be overridden in tests)
+var stdinStatFunc = func() bool {
+	stat, _ := os.Stdin.Stat()
+	return (stat.Mode() & os.ModeCharDevice) == 0
+}
+
 // getQuestion gets the question from args or stdin
 func getQuestion(args []string) (string, error) {
 	// If argument provided, use it
@@ -92,21 +102,30 @@ func getQuestion(args []string) (string, error) {
 		return args[0], nil
 	}
 
+	// If a test reader is set, use it
+	if stdinForQuestion != nil {
+		return readFromStdin(stdinForQuestion)
+	}
+
 	// Check if stdin has data (pipe)
-	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) == 0 {
+	if stdinStatFunc() {
 		// Data is being piped
-		reader := bufio.NewReader(os.Stdin)
-		var builder strings.Builder
-		for {
-			line, err := reader.ReadString('\n')
-			builder.WriteString(line)
-			if err != nil {
-				break
-			}
-		}
-		return strings.TrimSpace(builder.String()), nil
+		return readFromStdin(os.Stdin)
 	}
 
 	return "", nil
+}
+
+// readFromStdin reads all content from a reader
+func readFromStdin(r io.Reader) (string, error) {
+	reader := bufio.NewReader(r)
+	var builder strings.Builder
+	for {
+		line, err := reader.ReadString('\n')
+		builder.WriteString(line)
+		if err != nil {
+			break
+		}
+	}
+	return strings.TrimSpace(builder.String()), nil
 }

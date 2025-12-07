@@ -6,8 +6,14 @@ import (
 	"github.com/adammpkins/llamaterm/internal/cli"
 )
 
-func main() {
+// run is the main entry point, separated for testability
+func run() int {
 	if err := cli.Execute(); err != nil {
-		os.Exit(1)
+		return 1
 	}
+	return 0
+}
+
+func main() {
+	os.Exit(run())
 }
