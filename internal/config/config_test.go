@@ -314,8 +314,9 @@ func TestGetConfigPathConfigDir(t *testing.T) {
 	}
 
 	path := GetConfigPath()
-	if path != "/mock/config/lt/config.yaml" {
-		t.Errorf("Expected /mock/config/lt/config.yaml, got %s", path)
+	expected := filepath.Join("/mock/config", "lt", "config.yaml")
+	if path != expected {
+		t.Errorf("Expected %s, got %s", expected, path)
 	}
 }
 
@@ -335,8 +336,9 @@ func TestGetConfigPathFallbackToHome(t *testing.T) {
 	}
 
 	path := GetConfigPath()
-	if path != "/mock/home/.ltrc.yaml" {
-		t.Errorf("Expected /mock/home/.ltrc.yaml, got %s", path)
+	expected := filepath.Join("/mock/home", ".ltrc.yaml")
+	if path != expected {
+		t.Errorf("Expected %s, got %s", expected, path)
 	}
 }
 
