@@ -62,7 +62,7 @@ func TestRunAskWithMock(t *testing.T) {
 
 	err := runAsk(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -114,7 +114,7 @@ func TestRunCmdWithMock(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -188,7 +188,7 @@ func TestRunExplainWithMock(t *testing.T) {
 
 	err := runExplain(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -240,7 +240,7 @@ func TestRunExplainWithQuestion(t *testing.T) {
 
 	err := runExplain(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -268,7 +268,7 @@ func TestRunFixWithMock(t *testing.T) {
 
 	err := runFix(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -317,7 +317,7 @@ func TestExecuteQuickCmdWithMock(t *testing.T) {
 
 	err := executeQuickCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	// May error if shell not available, but should not panic
@@ -354,7 +354,7 @@ func TestExecuteQuickCmdDangerous(t *testing.T) {
 
 	err := executeQuickCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err == nil {
@@ -382,7 +382,7 @@ func TestRunCopyWithMock(t *testing.T) {
 
 	err := runCopy(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	// Clipboard may not be available, but function should not crash
@@ -426,7 +426,7 @@ func TestRunCmdWithConfirmation(t *testing.T) {
 	// This will try to execute the command
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	// May fail on execution but shouldn't panic
@@ -445,7 +445,7 @@ func TestExecuteCommand(t *testing.T) {
 
 	err := executeCommand("echo hello")
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -466,8 +466,8 @@ func TestExecuteCommandFailure(t *testing.T) {
 
 	err := executeCommand("exit 1")
 
-	w.Close()
-	wErr.Close()
+	_ = w.Close()
+	_ = wErr.Close()
 	os.Stdout = old
 	os.Stderr = oldErr
 
@@ -486,7 +486,7 @@ func TestConfigShowCommand(t *testing.T) {
 	// Run the config show command
 	_ = configShowCmd.RunE(configShowCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 1024)
@@ -505,7 +505,7 @@ func TestConfigPathCommand(t *testing.T) {
 
 	configPathCmd.Run(configPathCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 1024)
@@ -524,7 +524,7 @@ func TestHistoryListCommand(t *testing.T) {
 
 	_ = historyListCmd.RunE(historyListCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 1024)
@@ -544,7 +544,7 @@ func TestHistoryClearCommand(t *testing.T) {
 
 	err := historyClearCmd.RunE(historyClearCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -590,7 +590,7 @@ func TestRunAskWithStreaming(t *testing.T) {
 
 	err := runAsk(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -628,7 +628,7 @@ func TestRunExplainStreaming(t *testing.T) {
 
 	err := runExplain(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -662,7 +662,7 @@ func TestRunFixStreaming(t *testing.T) {
 
 	err := runFix(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -696,7 +696,7 @@ func TestRunCopyStreaming(t *testing.T) {
 
 	err := runCopy(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	// May fail on clipboard but shouldn't panic
@@ -727,7 +727,7 @@ func TestRunCmdDangerousCommand(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	// Should succeed but show warning
@@ -762,7 +762,7 @@ func TestRunCmdAPIError(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err == nil {
@@ -792,7 +792,7 @@ func TestRunExplainAPIError(t *testing.T) {
 
 	err := runExplain(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err == nil {
@@ -818,7 +818,7 @@ func TestRunAskAPIError(t *testing.T) {
 
 	err := runAsk(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err == nil {
@@ -844,7 +844,7 @@ func TestRunFixAPIError(t *testing.T) {
 
 	err := runFix(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err == nil {
@@ -872,7 +872,7 @@ func TestExecuteQuickCmdEmptyResponse(t *testing.T) {
 
 	err := executeQuickCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err == nil {
@@ -892,7 +892,7 @@ func TestConfigCommands(t *testing.T) {
 
 	_ = configShowCmd.RunE(configShowCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 2048)
@@ -941,7 +941,7 @@ func TestLoadHistoryAfterSave(t *testing.T) {
 		{Role: "user", Content: "Roundtrip test"},
 	}
 
-	saveHistory(messages, "roundtrip-model")
+	_ = saveHistory(messages, "roundtrip-model")
 
 	history, err := loadHistory()
 	if err != nil {
@@ -958,7 +958,7 @@ func TestRunAskMultipleQuestions(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"choices":[{"message":{"content":"Answer %d"}}]}`, callCount)))
+		_, _ = fmt.Fprintf(w, `{"choices":[{"message":{"content":"Answer %d"}}]}`, callCount)
 	}))
 	defer server.Close()
 
@@ -971,10 +971,10 @@ func TestRunAskMultipleQuestions(t *testing.T) {
 	os.Stdout = w
 
 	// Run multiple asks
-	runAsk(cmd, []string{"Question 1"})
-	runAsk(cmd, []string{"Question 2"})
+	_ = runAsk(cmd, []string{"Question 1"})
+	_ = runAsk(cmd, []string{"Question 2"})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 }
 
@@ -1002,7 +1002,7 @@ func TestRunCmdExecutesEcho(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	// Should execute successfully
@@ -1029,7 +1029,7 @@ func TestExecuteQuickCmdSafe(t *testing.T) {
 
 	err := executeQuickCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1048,9 +1048,9 @@ func TestAllConfigSubcommands(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	configShowCmd.RunE(configShowCmd, []string{})
+	_ = configShowCmd.RunE(configShowCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 4096)
@@ -1114,7 +1114,7 @@ func TestRunExplainLargeFile(t *testing.T) {
 
 	err := runExplain(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1140,7 +1140,7 @@ func TestRunFixMultiLineError(t *testing.T) {
 
 	err := runFix(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1158,7 +1158,7 @@ func TestExecuteCommandNoShell(t *testing.T) {
 
 	err := executeCommand("echo fallback")
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	// Should still work with fallback shell
@@ -1207,7 +1207,7 @@ func TestRunAskWithCopyFlagSet(t *testing.T) {
 
 	err := runAsk(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1263,7 +1263,7 @@ func TestRunExplainDifferentFileTypes(t *testing.T) {
 
 		err := runExplain(cmd, args)
 
-		w.Close()
+		_ = w.Close()
 		os.Stdout = old
 
 		if err != nil {
@@ -1317,9 +1317,9 @@ func TestHistoryMultipleSaves(t *testing.T) {
 	messages2 := []client.ChatMessage{{Role: "user", Content: "Second"}}
 	messages3 := []client.ChatMessage{{Role: "user", Content: "Third"}}
 
-	saveHistory(messages1, "model1")
-	saveHistory(messages2, "model2")
-	saveHistory(messages3, "model3")
+	_ = saveHistory(messages1, "model1")
+	_ = saveHistory(messages2, "model2")
+	_ = saveHistory(messages3, "model3")
 
 	history, err := loadHistory()
 	if err != nil {
@@ -1340,9 +1340,9 @@ func TestConfigShowMaskingVariations(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	configShowCmd.RunE(configShowCmd, []string{})
+	_ = configShowCmd.RunE(configShowCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 2048)
@@ -1358,15 +1358,15 @@ func TestConfigShowMaskingVariations(t *testing.T) {
 func TestHistoryListWithEntries(t *testing.T) {
 	// Ensure we have at least one history entry
 	messages := []client.ChatMessage{{Role: "user", Content: "For list test"}}
-	saveHistory(messages, "list-test-model")
+	_ = saveHistory(messages, "list-test-model")
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	historyListCmd.RunE(historyListCmd, []string{})
+	_ = historyListCmd.RunE(historyListCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 4096)
@@ -1395,7 +1395,7 @@ func TestExecuteQuickCmdAPISuccess(t *testing.T) {
 
 	err := executeQuickCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1421,7 +1421,7 @@ func TestRunCopyWithCodeBlocks(t *testing.T) {
 
 	err := runCopy(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1465,7 +1465,7 @@ func TestRunAskStreamingWithContent(t *testing.T) {
 
 	err := runAsk(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1493,7 +1493,7 @@ func TestRunCmdWithWhitespaceCommand(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1520,7 +1520,7 @@ func TestRunFixWithLongError(t *testing.T) {
 
 	err := runFix(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1554,7 +1554,7 @@ func TestSaveHistoryManyEntries(t *testing.T) {
 	// Save 150 entries - should only keep 100
 	for i := 0; i < 150; i++ {
 		messages := []client.ChatMessage{{Role: "user", Content: fmt.Sprintf("Entry %d", i)}}
-		saveHistory(messages, "test-model")
+		_ = saveHistory(messages, "test-model")
 	}
 
 	history, _ := loadHistory()
@@ -1586,8 +1586,8 @@ func TestExecuteCommandVariations(t *testing.T) {
 
 		err := executeCommand(tc.cmd)
 
-		w.Close()
-		wErr.Close()
+		_ = w.Close()
+		_ = wErr.Close()
 		os.Stdout = old
 		os.Stderr = oldErr
 
@@ -1618,7 +1618,7 @@ func TestRunCopyAPIError(t *testing.T) {
 
 	err := runCopy(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err == nil {
@@ -1644,7 +1644,7 @@ func TestExecuteQuickCmdAPIError(t *testing.T) {
 
 	err := executeQuickCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err == nil {
@@ -1660,9 +1660,9 @@ func TestMaskAPIKey(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	configShowCmd.RunE(configShowCmd, []string{})
+	_ = configShowCmd.RunE(configShowCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 4096)
@@ -1703,7 +1703,7 @@ func TestRunAskWithCopyFlagStreaming(t *testing.T) {
 
 	err := runAsk(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1737,7 +1737,7 @@ func TestRunCmdWithRealExecution(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1752,16 +1752,16 @@ func TestHistoryListWithManyEntries(t *testing.T) {
 			{Role: "user", Content: fmt.Sprintf("History entry %d", i)},
 			{Role: "assistant", Content: fmt.Sprintf("Response %d", i)},
 		}
-		saveHistory(messages, fmt.Sprintf("model-%d", i))
+		_ = saveHistory(messages, fmt.Sprintf("model-%d", i))
 	}
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	historyListCmd.RunE(historyListCmd, []string{})
+	_ = historyListCmd.RunE(historyListCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 8192)
@@ -1795,7 +1795,7 @@ func TestRunExplainWithBinaryFile(t *testing.T) {
 
 	err := runExplain(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1821,7 +1821,7 @@ func TestExecuteQuickCmdWithComplexCommand(t *testing.T) {
 
 	err := executeQuickCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -1842,7 +1842,7 @@ func TestConfigInitCreatesFile(t *testing.T) {
 		t.Error("configInitCmd should exist")
 	}
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 }
 
@@ -1864,7 +1864,7 @@ func TestRunFixWithEmptyResponse(t *testing.T) {
 
 	err := runFix(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	// Should not error even with empty response
@@ -1909,9 +1909,9 @@ func TestConfigShowNoAPIKey(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	configShowCmd.RunE(configShowCmd, []string{})
+	_ = configShowCmd.RunE(configShowCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 4096)
@@ -1931,7 +1931,7 @@ func TestConfigPathCommandOutput(t *testing.T) {
 
 	configPathCmd.Run(configPathCmd, []string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 2048)
@@ -1957,7 +1957,7 @@ func TestVersionCommand(t *testing.T) {
 	rootCmd.SetArgs([]string{"version"})
 	_ = rootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 2048)
@@ -1977,7 +1977,7 @@ func TestRootCmdHelp(t *testing.T) {
 	rootCmd.SetArgs([]string{"--help"})
 	_ = rootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 8192)
@@ -2081,7 +2081,7 @@ func TestRunAskWithLongQuestion(t *testing.T) {
 
 	err := runAsk(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -2119,7 +2119,7 @@ func TestChatCmdViaStdin(t *testing.T) {
 
 	err := runChat(nil, nil)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -2145,7 +2145,7 @@ func TestRunCmdDryRunMode(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -2196,9 +2196,9 @@ func TestRootCmdExecute(t *testing.T) {
 	os.Stdout = w
 
 	// Execute should not panic - though it might print usage
-	Execute()
+	_ = Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 }
 
@@ -2247,7 +2247,7 @@ func TestRunCopyViaStdin(t *testing.T) {
 
 	err := runCopy(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -2277,7 +2277,7 @@ func TestRunCmdAutoRun(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -2339,7 +2339,7 @@ func TestRunCmdNoConfirmNeeded(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -2365,7 +2365,7 @@ func TestRunCmdWithCodeFence(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	// cleanCommand should handle the code fence
@@ -2433,7 +2433,7 @@ func TestRunCmdConfirmationYes(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -2467,7 +2467,7 @@ func TestRunCmdConfirmationNo(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -2498,7 +2498,7 @@ func TestRunCmdConfirmationEmpty(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	// Empty response should decline
@@ -2525,7 +2525,7 @@ func TestRunCmdDangerousWarning(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	buf := make([]byte, 4096)
@@ -2554,7 +2554,7 @@ func TestRunCmdEmptyChoices(t *testing.T) {
 
 	err := runCmd(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err == nil {
@@ -2611,7 +2611,7 @@ func TestHandleCopyFlagSuccess(t *testing.T) {
 
 	handleCopyFlag("test content")
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 }
 
@@ -2636,7 +2636,7 @@ func TestHandleCopyFlagError(t *testing.T) {
 
 	handleCopyFlag("test content")
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 }
 
@@ -2779,7 +2779,7 @@ func TestExecuteCommandSuccess(t *testing.T) {
 
 	err := executeCommand("echo hello")
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -2794,7 +2794,7 @@ func TestExecuteCommandWithPipe(t *testing.T) {
 
 	err := executeCommand("echo hello | cat")
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	if err != nil {
@@ -2815,7 +2815,7 @@ func TestRunCopyNoQuestionNoInput(t *testing.T) {
 
 	err := runCopy(cmd, args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	// runCopy doesn't have early validation, it uses getQuestion which returns empty
@@ -2840,7 +2840,7 @@ func TestChatWelcomeMessage(t *testing.T) {
 		chatOutputWriter = nil
 	}()
 
-	runChat(nil, nil)
+	_ = runChat(nil, nil)
 
 	result := output.String()
 	if !strings.Contains(result, "LlamaTerm") {

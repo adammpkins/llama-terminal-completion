@@ -51,7 +51,7 @@ func (c *Client) ChatCompletion(messages []ChatMessage, maxTokens int, temperatu
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, c.handleError(resp)
@@ -148,7 +148,7 @@ func (c *Client) ChatCompletionStream(messages []ChatMessage, maxTokens int, tem
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return c.handleError(resp)
@@ -170,7 +170,7 @@ func (c *Client) ListModels() (*ModelsResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, c.handleError(resp)

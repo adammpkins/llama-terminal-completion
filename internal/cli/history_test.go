@@ -14,8 +14,8 @@ func TestSaveAndLoadHistory(t *testing.T) {
 	// Create a temp directory
 	tmpDir := t.TempDir()
 	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	// Create test messages
 	messages := []client.ChatMessage{
@@ -56,8 +56,8 @@ func TestLoadHistoryEmpty(t *testing.T) {
 	// Create a temp directory with no history
 	tmpDir := t.TempDir()
 	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	history, err := loadHistory()
 	if err != nil {
@@ -82,7 +82,7 @@ func TestLoadHistoryMalformedJSON(t *testing.T) {
 		if len(origData) > 0 {
 			_ = os.WriteFile(historyPath, origData, 0644)
 		} else {
-			os.Remove(historyPath)
+			_ = os.Remove(historyPath)
 		}
 	}()
 
@@ -98,8 +98,8 @@ func TestLoadHistoryMalformedJSON(t *testing.T) {
 func TestHistoryLimit(t *testing.T) {
 	tmpDir := t.TempDir()
 	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	messages := []client.ChatMessage{
 		{Role: "user", Content: "Test"},
@@ -127,15 +127,15 @@ func TestHistoryLimit(t *testing.T) {
 func TestHistoryTimestamp(t *testing.T) {
 	tmpDir := t.TempDir()
 	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	before := time.Now()
 
 	messages := []client.ChatMessage{
 		{Role: "user", Content: "Test"},
 	}
-	saveHistory(messages, "model")
+	_ = saveHistory(messages, "model")
 
 	after := time.Now()
 

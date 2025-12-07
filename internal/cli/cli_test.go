@@ -94,7 +94,7 @@ func TestPrintFunctions(t *testing.T) {
 
 	printError("test error %s", "msg")
 
-	wErr.Close()
+	_ = wErr.Close()
 	os.Stderr = oldErr
 
 	var bufErr bytes.Buffer
@@ -114,7 +114,7 @@ func TestPrintFunctions(t *testing.T) {
 	printWarning("test warning %s", "msg")
 	printInfo("test info %s", "msg")
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	var buf bytes.Buffer
@@ -140,7 +140,7 @@ func TestPrintChatHelp(t *testing.T) {
 
 	printChatHelp()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	var buf bytes.Buffer

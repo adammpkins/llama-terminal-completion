@@ -78,18 +78,18 @@ func runChatWithReader(reader *bufio.Reader, output io.Writer) error {
 	}
 
 	// Print welcome message
-	fmt.Fprintln(output)
-	fmt.Fprintf(output, "╭─────────────────────────────────────────╮\n")
-	fmt.Fprintf(output, "│         LlamaTerm Chat Session          │\n")
-	fmt.Fprintf(output, "│   Type 'exit' or 'quit' to end chat     │\n")
-	fmt.Fprintf(output, "╰─────────────────────────────────────────╯\n")
-	fmt.Fprintf(output, "  Model: %s\n", cfg.Model)
-	fmt.Fprintf(output, "  API:   %s\n", cfg.BaseURL)
-	fmt.Fprintln(output)
+	_, _ = fmt.Fprintln(output)
+	_, _ = fmt.Fprintf(output, "╭─────────────────────────────────────────╮\n")
+	_, _ = fmt.Fprintf(output, "│         LlamaTerm Chat Session          │\n")
+	_, _ = fmt.Fprintf(output, "│   Type 'exit' or 'quit' to end chat     │\n")
+	_, _ = fmt.Fprintf(output, "╰─────────────────────────────────────────╯\n")
+	_, _ = fmt.Fprintf(output, "  Model: %s\n", cfg.Model)
+	_, _ = fmt.Fprintf(output, "  API:   %s\n", cfg.BaseURL)
+	_, _ = fmt.Fprintln(output)
 
 	for {
 		// Print prompt
-		fmt.Fprint(output, "You: ")
+		_, _ = fmt.Fprint(output, "You: ")
 
 		// Read user input
 		input, err := reader.ReadString('\n')
@@ -104,16 +104,16 @@ func runChatWithReader(reader *bufio.Reader, output io.Writer) error {
 			continue
 		}
 		if input == "exit" || input == "quit" || input == "q" {
-			fmt.Fprintln(output)
-			fmt.Fprintln(output, "Goodbye! 👋")
+			_, _ = fmt.Fprintln(output)
+			_, _ = fmt.Fprintln(output, "Goodbye! 👋")
 			return nil
 		}
 
 		// Special commands
 		if input == "/clear" {
 			messages = messages[:1] // Keep system prompt
-			fmt.Fprintln(output, "Chat history cleared.")
-			fmt.Fprintln(output)
+			_, _ = fmt.Fprintln(output, "Chat history cleared.")
+			_, _ = fmt.Fprintln(output)
 			continue
 		}
 		if input == "/help" {
@@ -122,11 +122,11 @@ func runChatWithReader(reader *bufio.Reader, output io.Writer) error {
 		}
 		if input == "/save" {
 			if err := saveHistory(messages, cfg.Model); err != nil {
-				fmt.Fprintf(output, "Failed to save: %v\n", err)
+				_, _ = fmt.Fprintf(output, "Failed to save: %v\n", err)
 			} else {
-				fmt.Fprintln(output, "✓ Conversation saved")
+				_, _ = fmt.Fprintln(output, "✓ Conversation saved")
 			}
-			fmt.Fprintln(output)
+			_, _ = fmt.Fprintln(output)
 			continue
 		}
 
@@ -137,27 +137,27 @@ func runChatWithReader(reader *bufio.Reader, output io.Writer) error {
 		})
 
 		// Get response
-		fmt.Fprintln(output)
-		fmt.Fprint(output, "Assistant: ")
+		_, _ = fmt.Fprintln(output)
+		_, _ = fmt.Fprint(output, "Assistant: ")
 
 		var responseBuilder strings.Builder
 
 		if cfg.Stream {
 			err = apiClient.ChatCompletionStream(messages, cfg.MaxTokens, cfg.Temperature, func(content string) {
-				fmt.Fprint(output, content)
+				_, _ = fmt.Fprint(output, content)
 				responseBuilder.WriteString(content)
 			})
 		} else {
 			resp, err := apiClient.ChatCompletion(messages, cfg.MaxTokens, cfg.Temperature)
 			if err == nil && len(resp.Choices) > 0 {
 				content := resp.Choices[0].Message.Content
-				fmt.Fprint(output, content)
+				_, _ = fmt.Fprint(output, content)
 				responseBuilder.WriteString(content)
 			}
 		}
 
 		if err != nil {
-			fmt.Fprintf(output, "Error: %v\n", err)
+			_, _ = fmt.Fprintf(output, "Error: %v\n", err)
 			// Remove failed user message
 			messages = messages[:len(messages)-1]
 		} else {
@@ -168,8 +168,8 @@ func runChatWithReader(reader *bufio.Reader, output io.Writer) error {
 			})
 		}
 
-		fmt.Fprintln(output)
-		fmt.Fprintln(output)
+		_, _ = fmt.Fprintln(output)
+		_, _ = fmt.Fprintln(output)
 	}
 }
 
@@ -178,11 +178,11 @@ func printChatHelp() {
 }
 
 func printChatHelpTo(w io.Writer) {
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Chat Commands:")
-	fmt.Fprintln(w, "  /clear  - Clear conversation history")
-	fmt.Fprintln(w, "  /save   - Save conversation to history")
-	fmt.Fprintln(w, "  /help   - Show this help")
-	fmt.Fprintln(w, "  exit    - End the chat session")
-	fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w, "Chat Commands:")
+	_, _ = fmt.Fprintln(w, "  /clear  - Clear conversation history")
+	_, _ = fmt.Fprintln(w, "  /save   - Save conversation to history")
+	_, _ = fmt.Fprintln(w, "  /help   - Show this help")
+	_, _ = fmt.Fprintln(w, "  exit    - End the chat session")
+	_, _ = fmt.Fprintln(w)
 }

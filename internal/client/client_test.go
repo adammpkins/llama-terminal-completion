@@ -681,9 +681,8 @@ func TestChatCompletionEmptyAPIKey(t *testing.T) {
 	if err != nil {
 		t.Logf("ChatCompletion with empty key: %v", err)
 	}
-	if resp != nil && len(resp.Choices) > 0 {
-		// Success even with empty key (for local LLMs)
-	}
+	// Success even with empty key (for local LLMs)
+	_ = resp
 }
 
 func TestListModels(t *testing.T) {

@@ -41,15 +41,15 @@ func TestLoadWithEnvVars(t *testing.T) {
 	origModel := os.Getenv("LT_MODEL")
 	origAPIKey := os.Getenv("LT_API_KEY")
 	defer func() {
-		os.Setenv("LT_BASE_URL", origBaseURL)
-		os.Setenv("LT_MODEL", origModel)
-		os.Setenv("LT_API_KEY", origAPIKey)
+		_ = os.Setenv("LT_BASE_URL", origBaseURL)
+		_ = os.Setenv("LT_MODEL", origModel)
+		_ = os.Setenv("LT_API_KEY", origAPIKey)
 	}()
 
 	// Set test env vars
-	os.Setenv("LT_BASE_URL", "https://test.api.com/v1")
-	os.Setenv("LT_MODEL", "test-model")
-	os.Setenv("LT_API_KEY", "test-key")
+	_ = os.Setenv("LT_BASE_URL", "https://test.api.com/v1")
+	_ = os.Setenv("LT_MODEL", "test-model")
+	_ = os.Setenv("LT_API_KEY", "test-key")
 
 	cfg, err := Load()
 	if err != nil {
@@ -72,13 +72,13 @@ func TestLoadWithOpenAIEnvVars(t *testing.T) {
 	origAPIKey := os.Getenv("OPENAI_API_KEY")
 	origLTKey := os.Getenv("LT_API_KEY")
 	defer func() {
-		os.Setenv("OPENAI_API_KEY", origAPIKey)
-		os.Setenv("LT_API_KEY", origLTKey)
+		_ = os.Setenv("OPENAI_API_KEY", origAPIKey)
+		_ = os.Setenv("LT_API_KEY", origLTKey)
 	}()
 
 	// Clear LT_ vars and set OPENAI_ vars
-	os.Unsetenv("LT_API_KEY")
-	os.Setenv("OPENAI_API_KEY", "openai-key")
+	_ = os.Unsetenv("LT_API_KEY")
+	_ = os.Setenv("OPENAI_API_KEY", "openai-key")
 
 	cfg, err := Load()
 	if err != nil {
@@ -113,14 +113,14 @@ shell: /bin/bash
 	origBaseURL := os.Getenv("LT_BASE_URL")
 	origModel := os.Getenv("LT_MODEL")
 	origAPIKey := os.Getenv("LT_API_KEY")
-	os.Unsetenv("LT_BASE_URL")
-	os.Unsetenv("LT_MODEL")
-	os.Unsetenv("LT_API_KEY")
-	os.Unsetenv("OPENAI_API_KEY")
+	_ = os.Unsetenv("LT_BASE_URL")
+	_ = os.Unsetenv("LT_MODEL")
+	_ = os.Unsetenv("LT_API_KEY")
+	_ = os.Unsetenv("OPENAI_API_KEY")
 	defer func() {
-		os.Setenv("LT_BASE_URL", origBaseURL)
-		os.Setenv("LT_MODEL", origModel)
-		os.Setenv("LT_API_KEY", origAPIKey)
+		_ = os.Setenv("LT_BASE_URL", origBaseURL)
+		_ = os.Setenv("LT_MODEL", origModel)
+		_ = os.Setenv("LT_API_KEY", origAPIKey)
 	}()
 
 	// Note: This test is limited because Viper caches config
@@ -156,12 +156,12 @@ func TestLoadDefaults(t *testing.T) {
 	origValues := make(map[string]string)
 	for _, v := range envVars {
 		origValues[v] = os.Getenv(v)
-		os.Unsetenv(v)
+		_ = os.Unsetenv(v)
 	}
 	defer func() {
 		for k, v := range origValues {
 			if v != "" {
-				os.Setenv(k, v)
+				_ = os.Setenv(k, v)
 			}
 		}
 	}()
@@ -211,19 +211,19 @@ func TestLoadMultipleEnvSources(t *testing.T) {
 	origOAI := os.Getenv("OPENAI_API_KEY")
 	defer func() {
 		if origLT != "" {
-			os.Setenv("LT_API_KEY", origLT)
+			_ = os.Setenv("LT_API_KEY", origLT)
 		} else {
-			os.Unsetenv("LT_API_KEY")
+			_ = os.Unsetenv("LT_API_KEY")
 		}
 		if origOAI != "" {
-			os.Setenv("OPENAI_API_KEY", origOAI)
+			_ = os.Setenv("OPENAI_API_KEY", origOAI)
 		} else {
-			os.Unsetenv("OPENAI_API_KEY")
+			_ = os.Unsetenv("OPENAI_API_KEY")
 		}
 	}()
 
-	os.Setenv("LT_API_KEY", "lt-key")
-	os.Setenv("OPENAI_API_KEY", "openai-key")
+	_ = os.Setenv("LT_API_KEY", "lt-key")
+	_ = os.Setenv("OPENAI_API_KEY", "openai-key")
 
 	cfg, err := Load()
 	if err != nil {
@@ -246,15 +246,15 @@ func TestLoadAllEnvVars(t *testing.T) {
 	defer func() {
 		for k, v := range origVars {
 			if v != "" {
-				os.Setenv(k, v)
+				_ = os.Setenv(k, v)
 			} else {
-				os.Unsetenv(k)
+				_ = os.Unsetenv(k)
 			}
 		}
 	}()
 
-	os.Setenv("LT_BASE_URL", "https://custom.api.com/v1")
-	os.Setenv("LT_MODEL", "custom-model")
+	_ = os.Setenv("LT_BASE_URL", "https://custom.api.com/v1")
+	_ = os.Setenv("LT_MODEL", "custom-model")
 
 	cfg, err := Load()
 	if err != nil {
@@ -376,17 +376,17 @@ func TestLoadWithAllEnvVarsSet(t *testing.T) {
 	defer func() {
 		for k, v := range origValues {
 			if v != "" {
-				os.Setenv(k, v)
+				_ = os.Setenv(k, v)
 			} else {
-				os.Unsetenv(k)
+				_ = os.Unsetenv(k)
 			}
 		}
 	}()
 
 	// Set all env vars
-	os.Setenv("LT_BASE_URL", "https://custom.api.com")
-	os.Setenv("LT_API_KEY", "custom-key")
-	os.Setenv("LT_MODEL", "custom-model")
+	_ = os.Setenv("LT_BASE_URL", "https://custom.api.com")
+	_ = os.Setenv("LT_API_KEY", "custom-key")
+	_ = os.Setenv("LT_MODEL", "custom-model")
 
 	cfg, err := Load()
 	if err != nil {
@@ -403,20 +403,20 @@ func TestLoadOpenAIVarsAsFallback(t *testing.T) {
 	origOAI := os.Getenv("OPENAI_API_KEY")
 	defer func() {
 		if origLT != "" {
-			os.Setenv("LT_API_KEY", origLT)
+			_ = os.Setenv("LT_API_KEY", origLT)
 		} else {
-			os.Unsetenv("LT_API_KEY")
+			_ = os.Unsetenv("LT_API_KEY")
 		}
 		if origOAI != "" {
-			os.Setenv("OPENAI_API_KEY", origOAI)
+			_ = os.Setenv("OPENAI_API_KEY", origOAI)
 		} else {
-			os.Unsetenv("OPENAI_API_KEY")
+			_ = os.Unsetenv("OPENAI_API_KEY")
 		}
 	}()
 
 	// Clear LT key, set OPENAI key
-	os.Unsetenv("LT_API_KEY")
-	os.Setenv("OPENAI_API_KEY", "openai-fallback-key")
+	_ = os.Unsetenv("LT_API_KEY")
+	_ = os.Setenv("OPENAI_API_KEY", "openai-fallback-key")
 
 	cfg, err := Load()
 	if err != nil {
