@@ -158,7 +158,7 @@ func TestRunChatConversation(t *testing.T) {
 				{"message": map[string]string{"content": "Response " + string(rune('0'+callCount))}},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -234,9 +234,9 @@ func TestRunChatEOF(t *testing.T) {
 func TestRunChatStreaming(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		w.Write([]byte(`data: {"choices":[{"delta":{"content":"Hello"}}]}` + "\n"))
-		w.Write([]byte(`data: {"choices":[{"delta":{"content":" world"}}]}` + "\n"))
-		w.Write([]byte(`data: [DONE]` + "\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":"Hello"}}]}` + "\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":" world"}}]}` + "\n"))
+		_, _ = w.Write([]byte(`data: [DONE]` + "\n"))
 	}))
 	defer server.Close()
 
@@ -267,7 +267,7 @@ func TestRunChatStreaming(t *testing.T) {
 func TestRunChatAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":{"message":"Server error"}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"Server error"}}`))
 	}))
 	defer server.Close()
 

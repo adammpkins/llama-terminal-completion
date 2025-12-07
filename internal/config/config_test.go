@@ -107,7 +107,7 @@ confirm_commands: false
 shell: /bin/bash
 `
 	configPath := filepath.Join(configDir, "config.yaml")
-	os.WriteFile(configPath, []byte(configContent), 0644)
+	_ = os.WriteFile(configPath, []byte(configContent), 0644)
 
 	// Clear env vars that might interfere
 	origBaseURL := os.Getenv("LT_BASE_URL")

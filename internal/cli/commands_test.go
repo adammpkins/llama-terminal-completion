@@ -21,7 +21,7 @@ import (
 func setupMockServer(response string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(response))
+		_, _ = w.Write([]byte(response))
 	}))
 }
 
@@ -176,7 +176,7 @@ func TestRunExplainWithMock(t *testing.T) {
 	// Create a temp file to explain
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.go")
-	os.WriteFile(testFile, []byte("package main\nfunc main() {}"), 0644)
+	_ = os.WriteFile(testFile, []byte("package main\nfunc main() {}"), 0644)
 
 	cmd := &cobra.Command{}
 	args := []string{testFile}
@@ -229,7 +229,7 @@ func TestRunExplainWithQuestion(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "config.yaml")
-	os.WriteFile(testFile, []byte("key: value"), 0644)
+	_ = os.WriteFile(testFile, []byte("key: value"), 0644)
 
 	cmd := &cobra.Command{}
 	args := []string{testFile, "What does this configure?"}
@@ -562,12 +562,12 @@ func TestRunAskWithStreaming(t *testing.T) {
 
 		if req.Stream {
 			w.Header().Set("Content-Type", "text/event-stream")
-			w.Write([]byte(`data: {"choices":[{"delta":{"content":"Stream"}}]}` + "\n"))
-			w.Write([]byte(`data: {"choices":[{"delta":{"content":"ed"}}]}` + "\n"))
-			w.Write([]byte(`data: [DONE]` + "\n"))
+			_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":"Stream"}}]}` + "\n"))
+			_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":"ed"}}]}` + "\n"))
+			_, _ = w.Write([]byte(`data: [DONE]` + "\n"))
 		} else {
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"choices":[{"message":{"content":"Non-streamed"}}]}`))
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"Non-streamed"}}]}`))
 		}
 	}))
 	defer server.Close()
@@ -601,8 +601,8 @@ func TestRunAskWithStreaming(t *testing.T) {
 func TestRunExplainStreaming(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		w.Write([]byte(`data: {"choices":[{"delta":{"content":"Explained"}}]}` + "\n"))
-		w.Write([]byte(`data: [DONE]` + "\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":"Explained"}}]}` + "\n"))
+		_, _ = w.Write([]byte(`data: [DONE]` + "\n"))
 	}))
 	defer server.Close()
 
@@ -617,7 +617,7 @@ func TestRunExplainStreaming(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.py")
-	os.WriteFile(testFile, []byte("print('hello')"), 0644)
+	_ = os.WriteFile(testFile, []byte("print('hello')"), 0644)
 
 	cmd := &cobra.Command{}
 	args := []string{testFile}
@@ -639,8 +639,8 @@ func TestRunExplainStreaming(t *testing.T) {
 func TestRunFixStreaming(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		w.Write([]byte(`data: {"choices":[{"delta":{"content":"Fixed"}}]}` + "\n"))
-		w.Write([]byte(`data: [DONE]` + "\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":"Fixed"}}]}` + "\n"))
+		_, _ = w.Write([]byte(`data: [DONE]` + "\n"))
 	}))
 	defer server.Close()
 
@@ -673,8 +673,8 @@ func TestRunFixStreaming(t *testing.T) {
 func TestRunCopyStreaming(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		w.Write([]byte(`data: {"choices":[{"delta":{"content":"Copied"}}]}` + "\n"))
-		w.Write([]byte(`data: [DONE]` + "\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":"Copied"}}]}` + "\n"))
+		_, _ = w.Write([]byte(`data: [DONE]` + "\n"))
 	}))
 	defer server.Close()
 
@@ -747,7 +747,7 @@ func TestRunCmdDangerousCommand(t *testing.T) {
 func TestRunCmdAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":{"message":"Server error"}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"Server error"}}`))
 	}))
 	defer server.Close()
 
@@ -773,7 +773,7 @@ func TestRunCmdAPIError(t *testing.T) {
 func TestRunExplainAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"error":{"message":"Invalid API key"}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"Invalid API key"}}`))
 	}))
 	defer server.Close()
 
@@ -781,7 +781,7 @@ func TestRunExplainAPIError(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.txt")
-	os.WriteFile(testFile, []byte("content"), 0644)
+	_ = os.WriteFile(testFile, []byte("content"), 0644)
 
 	cmd := &cobra.Command{}
 	args := []string{testFile}
@@ -803,7 +803,7 @@ func TestRunExplainAPIError(t *testing.T) {
 func TestRunAskAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":{"message":"Bad request"}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"Bad request"}}`))
 	}))
 	defer server.Close()
 
@@ -829,7 +829,7 @@ func TestRunAskAPIError(t *testing.T) {
 func TestRunFixAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte(`{"error":{"message":"Service unavailable"}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"Service unavailable"}}`))
 	}))
 	defer server.Close()
 
@@ -958,7 +958,7 @@ func TestRunAskMultipleQuestions(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(fmt.Sprintf(`{"choices":[{"message":{"content":"Answer %d"}}]}`, callCount)))
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"choices":[{"message":{"content":"Answer %d"}}]}`, callCount)))
 	}))
 	defer server.Close()
 
@@ -1103,7 +1103,7 @@ func TestRunExplainLargeFile(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "large.go")
 	// Create a larger file
 	content := strings.Repeat("package main\n", 100)
-	os.WriteFile(testFile, []byte(content), 0644)
+	_ = os.WriteFile(testFile, []byte(content), 0644)
 
 	cmd := &cobra.Command{}
 	args := []string{testFile}
@@ -1252,7 +1252,7 @@ func TestRunExplainDifferentFileTypes(t *testing.T) {
 
 	for _, ft := range types {
 		testFile := filepath.Join(tmpDir, "test"+ft.ext)
-		os.WriteFile(testFile, []byte(ft.content), 0644)
+		_ = os.WriteFile(testFile, []byte(ft.content), 0644)
 
 		cmd := &cobra.Command{}
 		args := []string{testFile}
@@ -1440,10 +1440,10 @@ func TestCopyToClipboardMultipleCalls(t *testing.T) {
 func TestRunAskStreamingWithContent(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		w.Write([]byte(`data: {"choices":[{"delta":{"content":"Hello"}}]}` + "\n"))
-		w.Write([]byte(`data: {"choices":[{"delta":{"content":" streaming"}}]}` + "\n"))
-		w.Write([]byte(`data: {"choices":[{"delta":{"content":" world"}}]}` + "\n"))
-		w.Write([]byte(`data: [DONE]` + "\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":"Hello"}}]}` + "\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":" streaming"}}]}` + "\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":" world"}}]}` + "\n"))
+		_, _ = w.Write([]byte(`data: [DONE]` + "\n"))
 	}))
 	defer server.Close()
 
@@ -1603,7 +1603,7 @@ func TestExecuteCommandVariations(t *testing.T) {
 func TestRunCopyAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":{"message":"Copy failed"}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"Copy failed"}}`))
 	}))
 	defer server.Close()
 
@@ -1629,7 +1629,7 @@ func TestRunCopyAPIError(t *testing.T) {
 func TestExecuteQuickCmdAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte(`{"error":{"message":"Service down"}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"Service down"}}`))
 	}))
 	defer server.Close()
 
@@ -1678,8 +1678,8 @@ func TestMaskAPIKey(t *testing.T) {
 func TestRunAskWithCopyFlagStreaming(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		w.Write([]byte(`data: {"choices":[{"delta":{"content":"Streamed"}}]}` + "\n"))
-		w.Write([]byte(`data: [DONE]` + "\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":"Streamed"}}]}` + "\n"))
+		_, _ = w.Write([]byte(`data: [DONE]` + "\n"))
 	}))
 	defer server.Close()
 
@@ -1784,7 +1784,7 @@ func TestRunExplainWithBinaryFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.bin")
 	// Write some binary data
-	os.WriteFile(testFile, []byte{0x00, 0x01, 0x02, 0xFF, 0xFE}, 0644)
+	_ = os.WriteFile(testFile, []byte{0x00, 0x01, 0x02, 0xFF, 0xFE}, 0644)
 
 	cmd := &cobra.Command{}
 	args := []string{testFile}
@@ -2376,8 +2376,8 @@ func TestRunCmdWithCodeFence(t *testing.T) {
 func TestChatCompletionStreamViaClient(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		w.Write([]byte(`data: {"choices":[{"delta":{"content":"Test"}}]}` + "\n"))
-		w.Write([]byte(`data: [DONE]` + "\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":"Test"}}]}` + "\n"))
+		_, _ = w.Write([]byte(`data: [DONE]` + "\n"))
 	}))
 	defer server.Close()
 
@@ -2850,10 +2850,10 @@ func TestChatWelcomeMessage(t *testing.T) {
 func TestProcessStreamEmptyLine(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		w.Write([]byte("\n"))
-		w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"test\"}}]}\n"))
-		w.Write([]byte("\n"))
-		w.Write([]byte("data: [DONE]\n"))
+		_, _ = w.Write([]byte("\n"))
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"test\"}}]}\n"))
+		_, _ = w.Write([]byte("\n"))
+		_, _ = w.Write([]byte("data: [DONE]\n"))
 	}))
 	defer server.Close()
 

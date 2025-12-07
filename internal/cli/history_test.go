@@ -74,20 +74,20 @@ func TestLoadHistoryMalformedJSON(t *testing.T) {
 	historyPath := getHistoryPath()
 
 	// Create dir if needed
-	os.MkdirAll(filepath.Dir(historyPath), 0755)
+	_ = os.MkdirAll(filepath.Dir(historyPath), 0755)
 
 	// Backup existing if any
 	origData, _ := os.ReadFile(historyPath)
 	defer func() {
 		if len(origData) > 0 {
-			os.WriteFile(historyPath, origData, 0644)
+			_ = os.WriteFile(historyPath, origData, 0644)
 		} else {
 			os.Remove(historyPath)
 		}
 	}()
 
 	// Write malformed JSON
-	os.WriteFile(historyPath, []byte("not valid json"), 0644)
+	_ = os.WriteFile(historyPath, []byte("not valid json"), 0644)
 
 	_, err := loadHistory()
 	if err == nil {

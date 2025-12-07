@@ -310,7 +310,7 @@ func TestChatCompletionStreamEmptyDelta(t *testing.T) {
 			`data: [DONE]`,
 		}
 		for _, chunk := range chunks {
-			w.Write([]byte(chunk + "\n\n"))
+			_, _ = w.Write([]byte(chunk + "\n\n"))
 		}
 	}))
 	defer server.Close()
@@ -334,7 +334,7 @@ func TestChatCompletionStreamEmptyDelta(t *testing.T) {
 func TestChatCompletionStreamError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":{"message":"Server error"}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"Server error"}}`))
 	}))
 	defer server.Close()
 
@@ -434,7 +434,7 @@ func TestNewClientTrimsBaseURL(t *testing.T) {
 func TestChatCompletionDecodeError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("invalid json"))
+		_, _ = w.Write([]byte("invalid json"))
 	}))
 	defer server.Close()
 
@@ -458,7 +458,7 @@ func TestChatCompletionStreamWithEmptyContent(t *testing.T) {
 			`data: [DONE]`,
 		}
 		for _, chunk := range chunks {
-			w.Write([]byte(chunk + "\n\n"))
+			_, _ = w.Write([]byte(chunk + "\n\n"))
 		}
 	}))
 	defer server.Close()
@@ -487,7 +487,7 @@ func TestChatCompletionMultipleChoices(t *testing.T) {
 				{Message: ChatMessage{Content: "second"}},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -510,7 +510,7 @@ func TestChatCompletionTimeout(t *testing.T) {
 		resp := ChatCompletionResponse{
 			Choices: []Choice{{Message: ChatMessage{Content: "done"}}},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -529,9 +529,9 @@ func TestChatCompletionStreamMultipleChunks(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		for i := 0; i < 10; i++ {
-			w.Write([]byte(fmt.Sprintf(`data: {"choices":[{"delta":{"content":"chunk%d "}}]}`, i) + "\n"))
+			_, _ = w.Write([]byte(fmt.Sprintf(`data: {"choices":[{"delta":{"content":"chunk%d "}}]}`, i) + "\n"))
 		}
-		w.Write([]byte(`data: [DONE]` + "\n"))
+		_, _ = w.Write([]byte(`data: [DONE]` + "\n"))
 	}))
 	defer server.Close()
 
@@ -556,7 +556,7 @@ func TestChatCompletionWithRoleContent(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var req ChatCompletionRequest
-		json.Unmarshal(body, &req)
+		_ = json.Unmarshal(body, &req)
 
 		// Verify messages are passed correctly
 		if len(req.Messages) != 2 {
@@ -569,7 +569,7 @@ func TestChatCompletionWithRoleContent(t *testing.T) {
 		resp := ChatCompletionResponse{
 			Choices: []Choice{{Message: ChatMessage{Content: "response"}}},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -602,7 +602,7 @@ func TestHandleErrorVariousStatusCodes(t *testing.T) {
 		t.Run(fmt.Sprintf("status_%d", tt.statusCode), func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
-				w.Write([]byte(tt.body))
+				_, _ = w.Write([]byte(tt.body))
 			}))
 			defer server.Close()
 
@@ -641,8 +641,8 @@ func TestChatCompletionNetworkError(t *testing.T) {
 func TestChatCompletionStreamInvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		w.Write([]byte(`data: {invalid json}` + "\n"))
-		w.Write([]byte(`data: [DONE]` + "\n"))
+		_, _ = w.Write([]byte(`data: {invalid json}` + "\n"))
+		_, _ = w.Write([]byte(`data: [DONE]` + "\n"))
 	}))
 	defer server.Close()
 
@@ -670,7 +670,7 @@ func TestChatCompletionEmptyAPIKey(t *testing.T) {
 		resp := ChatCompletionResponse{
 			Choices: []Choice{{Message: ChatMessage{Content: "response"}}},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -709,7 +709,7 @@ func TestListModels(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -730,7 +730,7 @@ func TestListModels(t *testing.T) {
 func TestListModelsError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"error":{"message":"Invalid API key"}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"Invalid API key"}}`))
 	}))
 	defer server.Close()
 
@@ -748,7 +748,7 @@ func TestListModelsError(t *testing.T) {
 func TestListModelsDecodeError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("invalid json"))
+		_, _ = w.Write([]byte("invalid json"))
 	}))
 	defer server.Close()
 
@@ -766,7 +766,7 @@ func TestListModelsEmpty(t *testing.T) {
 			Object: "list",
 			Data:   []Model{},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 

@@ -98,7 +98,7 @@ func TestPrintFunctions(t *testing.T) {
 	os.Stderr = oldErr
 
 	var bufErr bytes.Buffer
-	bufErr.ReadFrom(rErr)
+	_, _ = bufErr.ReadFrom(rErr)
 	errOutput := bufErr.String()
 
 	if !strings.Contains(errOutput, "test error msg") {
@@ -118,7 +118,7 @@ func TestPrintFunctions(t *testing.T) {
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	output := buf.String()
 
 	if !strings.Contains(output, "test success msg") {
@@ -144,7 +144,7 @@ func TestPrintChatHelp(t *testing.T) {
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	output := buf.String()
 
 	// Verify help contains expected commands
