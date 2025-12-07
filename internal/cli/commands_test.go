@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -436,6 +437,9 @@ func TestRunCmdWithConfirmation(t *testing.T) {
 }
 
 func TestExecuteCommand(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping shell test on Windows")
+	}
 	setupTestConfig("http://unused")
 	cfg.Shell = "/bin/sh"
 
@@ -1564,6 +1568,9 @@ func TestSaveHistoryManyEntries(t *testing.T) {
 }
 
 func TestExecuteCommandVariations(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping shell test on Windows")
+	}
 	setupTestConfig("http://unused")
 	cfg.Shell = "/bin/sh"
 

@@ -11,19 +11,14 @@ import (
 )
 
 func TestSaveAndLoadHistory(t *testing.T) {
-	// Create a temp directory
+	// Create a temp directory and mock userConfigDirFunc
 	tmpDir := t.TempDir()
-	origHome := os.Getenv("HOME")
-	origXDG := os.Getenv("XDG_CONFIG_HOME")
-	_ = os.Setenv("HOME", tmpDir)
-	_ = os.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	origConfigDirFunc := userConfigDirFunc
+	userConfigDirFunc = func() (string, error) {
+		return tmpDir, nil
+	}
 	defer func() {
-		_ = os.Setenv("HOME", origHome)
-		if origXDG != "" {
-			_ = os.Setenv("XDG_CONFIG_HOME", origXDG)
-		} else {
-			_ = os.Unsetenv("XDG_CONFIG_HOME")
-		}
+		userConfigDirFunc = origConfigDirFunc
 	}()
 
 	// Create test messages
@@ -62,19 +57,14 @@ func TestSaveAndLoadHistory(t *testing.T) {
 }
 
 func TestLoadHistoryEmpty(t *testing.T) {
-	// Create a temp directory with no history
+	// Create a temp directory with no history and mock userConfigDirFunc
 	tmpDir := t.TempDir()
-	origHome := os.Getenv("HOME")
-	origXDG := os.Getenv("XDG_CONFIG_HOME")
-	_ = os.Setenv("HOME", tmpDir)
-	_ = os.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	origConfigDirFunc := userConfigDirFunc
+	userConfigDirFunc = func() (string, error) {
+		return tmpDir, nil
+	}
 	defer func() {
-		_ = os.Setenv("HOME", origHome)
-		if origXDG != "" {
-			_ = os.Setenv("XDG_CONFIG_HOME", origXDG)
-		} else {
-			_ = os.Unsetenv("XDG_CONFIG_HOME")
-		}
+		userConfigDirFunc = origConfigDirFunc
 	}()
 
 	history, err := loadHistory()
@@ -195,8 +185,9 @@ func TestGetHistoryPathConfigDir(t *testing.T) {
 	}
 
 	path := getHistoryPath()
-	if path != "/mock/config/lt/history.json" {
-		t.Errorf("Expected /mock/config/lt/history.json, got %s", path)
+	expected := filepath.Join("/mock/config", "lt", "history.json")
+	if path != expected {
+		t.Errorf("Expected %s, got %s", expected, path)
 	}
 }
 
@@ -216,8 +207,9 @@ func TestGetHistoryPathFallbackToHome(t *testing.T) {
 	}
 
 	path := getHistoryPath()
-	if path != "/mock/home/.lt_history.json" {
-		t.Errorf("Expected /mock/home/.lt_history.json, got %s", path)
+	expected := filepath.Join("/mock/home", ".lt_history.json")
+	if path != expected {
+		t.Errorf("Expected %s, got %s", expected, path)
 	}
 }
 
