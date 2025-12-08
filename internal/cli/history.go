@@ -30,60 +30,81 @@ Examples:
 
 var historyListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List recent conversations",
+	Short: "List saved conversations",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		history, err := loadHistory()
+		conversations, err := listConversations()
 		if err != nil {
 			return err
 		}
 
-		if len(history) == 0 {
-			fmt.Println("No chat history found.")
+		if len(conversations) == 0 {
+			fmt.Println("No saved conversations found.")
+			fmt.Println("Start a chat with: lt chat")
 			return nil
 		}
 
 		fmt.Println()
-		printInfo("Chat History\n")
-		fmt.Println("────────────────────────────────────────")
+		printInfo("Saved Conversations\n")
+		fmt.Println("────────────────────────────────────────────────────────────────")
 
-		for i, entry := range history {
-			// Show last 10
-			if i >= 10 {
-				fmt.Printf("  ... and %d more\n", len(history)-10)
+		for i, conv := range conversations {
+			// Show up to 20 conversations
+			if i >= 20 {
+				fmt.Printf("  ... and %d more\n", len(conversations)-20)
 				break
 			}
 
-			// Find first user message
-			var preview string
-			for _, msg := range entry.Messages {
-				if msg.Role == "user" {
-					preview = msg.Content
-					if len(preview) > 50 {
-						preview = preview[:50] + "..."
-					}
-					break
-				}
+			// Truncate title if too long
+			title := conv.Title
+			if len(title) > 40 {
+				title = title[:37] + "..."
 			}
 
-			fmt.Printf("  %s | %s | %s\n",
-				entry.Timestamp.Format("2006-01-02 15:04"),
-				entry.Model,
-				preview)
+			fmt.Printf("  %-18s │ %-10s │ %s\n",
+				conv.ID,
+				conv.Model,
+				title)
 		}
 		fmt.Println()
+		fmt.Println("Resume with: lt chat --resume")
+		fmt.Println("Delete with: lt history delete <id>")
 		return nil
 	},
 }
 
 var historyClearCmd = &cobra.Command{
 	Use:   "clear",
-	Short: "Clear all chat history",
+	Short: "Clear all saved conversations",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		path := getHistoryPath()
-		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("failed to clear history: %w", err)
+		// Delete all conversation files
+		conversations, err := listConversations()
+		if err != nil {
+			return err
 		}
-		printSuccess("✓ Chat history cleared")
+
+		for _, conv := range conversations {
+			_ = deleteConversation(conv.ID)
+		}
+
+		// Also clear legacy history file
+		path := getHistoryPath()
+		_ = os.Remove(path)
+
+		printSuccess(fmt.Sprintf("✓ Cleared %d conversation(s)", len(conversations)))
+		return nil
+	},
+}
+
+var historyDeleteCmd = &cobra.Command{
+	Use:   "delete <id>",
+	Short: "Delete a saved conversation",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		id := args[0]
+		if err := deleteConversation(id); err != nil {
+			return err
+		}
+		printSuccess("✓ Conversation deleted: " + id)
 		return nil
 	},
 }
@@ -92,6 +113,7 @@ func init() {
 	rootCmd.AddCommand(historyCmd)
 	historyCmd.AddCommand(historyListCmd)
 	historyCmd.AddCommand(historyClearCmd)
+	historyCmd.AddCommand(historyDeleteCmd)
 }
 
 // Injectable functions for testing

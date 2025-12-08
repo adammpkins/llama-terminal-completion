@@ -26,20 +26,23 @@ The conversation maintains context, so you can have a back-and-forth dialogue.
 Type 'exit', 'quit', or press Ctrl+C to end the session.
 
 Examples:
-  lt chat
-  lt chat --model gpt-4`,
+  lt chat              Start a new conversation
+  lt chat --resume     Resume a previous conversation`,
 	RunE: runChat,
 }
 
+var resumeFlag bool
+
 func init() {
 	rootCmd.AddCommand(chatCmd)
+	chatCmd.Flags().BoolVarP(&resumeFlag, "resume", "r", false, "Resume a previous conversation")
 }
 
 func runChat(cmd *cobra.Command, args []string) error {
 	// Check if we're in a TTY for the beautiful TUI
 	// If stdin is being injected (for tests) or we're not in a TTY, use simple mode
 	if stdinForChat == nil && isTerminal() {
-		return runChatTUI()
+		return runChatTUI(resumeFlag)
 	}
 
 	// Fallback to simple mode for non-TTY or testing

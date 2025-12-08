@@ -79,6 +79,7 @@ type viewState int
 const (
 	viewChat viewState = iota
 	viewModelSelector
+	viewConversationPicker
 )
 
 type chatMessage struct {
@@ -96,26 +97,41 @@ func (i modelItem) Title() string       { return i.id }
 func (i modelItem) Description() string { return fmt.Sprintf("Owned by: %s", i.ownedBy) }
 func (i modelItem) FilterValue() string { return i.id }
 
+// Conversation item for the list component
+type conversationItem struct {
+	id        string
+	title     string
+	updatedAt string
+	model     string
+}
+
+func (i conversationItem) Title() string       { return i.title }
+func (i conversationItem) Description() string { return fmt.Sprintf("%s • %s", i.updatedAt, i.model) }
+func (i conversationItem) FilterValue() string { return i.title }
+
 type chatModel struct {
-	textarea        textarea.Model
-	viewport        viewport.Model
-	modelList       list.Model
-	spinner         spinner.Model
-	glamourRenderer *glamour.TermRenderer
-	messages        []chatMessage
-	apiMessages     []client.ChatMessage
-	apiClient       *client.Client
-	loading         bool
-	loadingModels   bool
-	currentResponse strings.Builder
-	err             error
-	width           int
-	height          int
-	ready           bool
-	model           string
-	baseURL         string
-	viewState       viewState
-	availableModels []client.Model
+	textarea             textarea.Model
+	viewport             viewport.Model
+	modelList            list.Model
+	conversationList     list.Model
+	spinner              spinner.Model
+	glamourRenderer      *glamour.TermRenderer
+	messages             []chatMessage
+	apiMessages          []client.ChatMessage
+	apiClient            *client.Client
+	loading              bool
+	loadingModels        bool
+	loadingConversations bool
+	currentResponse      strings.Builder
+	err                  error
+	width                int
+	height               int
+	ready                bool
+	model                string
+	baseURL              string
+	viewState            viewState
+	availableModels      []client.Model
+	currentConversation  *Conversation
 }
 
 type responseMsg struct {
@@ -126,6 +142,11 @@ type responseMsg struct {
 type modelsMsg struct {
 	models []client.Model
 	err    error
+}
+
+type conversationsMsg struct {
+	conversations []Conversation
+	err           error
 }
 
 func newChatModel() chatModel {
@@ -210,25 +231,39 @@ func newChatModel() chatModel {
 	ml.SetFilteringEnabled(true)
 	ml.Styles.Title = headerStyle
 
+	// Create conversation list with same styling (title disabled - we render custom header)
+	cl := list.New([]list.Item{}, delegate, 60, 20)
+	cl.SetShowTitle(false)
+	cl.SetShowStatusBar(true)
+	cl.SetFilteringEnabled(true)
+
+	// Start with a new conversation
+	conv := newConversation(cfg.Model)
+
 	return chatModel{
-		textarea:        ta,
-		viewport:        vp,
-		modelList:       ml,
-		spinner:         sp,
-		glamourRenderer: renderer,
-		messages:        []chatMessage{},
-		apiMessages: []client.ChatMessage{
-			{Role: "system", Content: "You are a helpful AI assistant. Be concise but thorough. Format code with markdown."},
-		},
-		apiClient: client.NewClient(cfg.BaseURL, cfg.APIKey, cfg.Model),
-		model:     cfg.Model,
-		baseURL:   cfg.BaseURL,
-		viewState: viewChat,
+		textarea:            ta,
+		viewport:            vp,
+		modelList:           ml,
+		conversationList:    cl,
+		spinner:             sp,
+		glamourRenderer:     renderer,
+		messages:            []chatMessage{},
+		apiMessages:         conv.Messages,
+		apiClient:           client.NewClient(cfg.BaseURL, cfg.APIKey, cfg.Model),
+		model:               cfg.Model,
+		baseURL:             cfg.BaseURL,
+		viewState:           viewChat,
+		currentConversation: conv,
 	}
 }
 
 func (m chatModel) Init() tea.Cmd {
-	return tea.Batch(textarea.Blink, m.spinner.Tick)
+	cmds := []tea.Cmd{textarea.Blink, m.spinner.Tick}
+	// If starting in resume mode, fetch conversations
+	if m.loadingConversations {
+		cmds = append(cmds, m.fetchConversations())
+	}
+	return tea.Batch(cmds...)
 }
 
 func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -265,9 +300,63 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, listCmd
 		}
 
+		// Handle conversation picker view
+		if m.viewState == viewConversationPicker {
+			switch msg.String() {
+			case "ctrl+c", "esc":
+				m.viewState = viewChat
+				m.textarea.Focus()
+				return m, nil
+			case "enter":
+				if !m.loadingConversations {
+					selected := m.conversationList.SelectedItem()
+					if selected != nil {
+						item := selected.(conversationItem)
+						conv, err := loadConversation(item.id)
+						if err == nil {
+							m.currentConversation = conv
+							m.model = conv.Model
+							m.apiMessages = conv.Messages
+							m.apiClient = client.NewClient(cfg.BaseURL, cfg.APIKey, m.model)
+							// Rebuild display messages from conversation
+							m.messages = []chatMessage{}
+							for _, msg := range conv.Messages {
+								if msg.Role != "system" {
+									m.messages = append(m.messages, chatMessage{Role: msg.Role, Content: msg.Content})
+								}
+							}
+							m.updateViewport()
+							m.viewport.GotoBottom()
+						}
+					}
+					m.viewState = viewChat
+					m.textarea.Focus()
+					return m, nil
+				}
+			case "n":
+				// Start new conversation
+				conv := newConversation(m.model)
+				m.currentConversation = conv
+				m.apiMessages = conv.Messages
+				m.messages = []chatMessage{}
+				m.updateViewport()
+				m.viewState = viewChat
+				m.textarea.Focus()
+				return m, nil
+			}
+			m.conversationList, listCmd = m.conversationList.Update(msg)
+			return m, listCmd
+		}
+
 		// Handle chat view
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
+			// Auto-save before quitting
+			if len(m.apiMessages) > 1 {
+				m.currentConversation.Messages = m.apiMessages
+				m.currentConversation.Model = m.model
+				_ = saveConversation(m.currentConversation)
+			}
 			return m, tea.Quit
 
 		case tea.KeyCtrlO:
@@ -276,6 +365,14 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.viewState = viewModelSelector
 				m.loadingModels = true
 				return m, m.fetchModels()
+			}
+
+		case tea.KeyCtrlH:
+			// Ctrl+H opens conversation history picker
+			if !m.loading {
+				m.viewState = viewConversationPicker
+				m.loadingConversations = true
+				return m, m.fetchConversations()
 			}
 
 		case tea.KeyEnter:
@@ -298,18 +395,31 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textarea.Reset()
 				return m, nil
 			case "/help":
-				helpText := "\nCommands:\n  /clear  - Clear history\n  /save   - Save conversation\n  /model  - Select model\n  /help   - Show help\n  exit    - End chat\n"
+				helpText := "\nCommands:\n  /clear   - Clear current chat\n  /new     - Start new conversation\n  /history - Browse conversations\n  /model   - Select model\n  /help    - Show help\n  exit     - End chat (auto-saves)\n"
 				m.messages = append(m.messages, chatMessage{Role: "system", Content: helpText})
 				m.updateViewport()
 				m.textarea.Reset()
 				return m, nil
-			case "/save":
-				if err := saveHistory(m.apiMessages, m.model); err != nil {
-					m.err = err
-				} else {
-					m.messages = append(m.messages, chatMessage{Role: "system", Content: "✓ Conversation saved"})
-					m.updateViewport()
+			case "/history":
+				m.viewState = viewConversationPicker
+				m.loadingConversations = true
+				m.textarea.Reset()
+				return m, m.fetchConversations()
+			case "/new":
+				// Save current conversation if it has messages
+				if len(m.apiMessages) > 1 {
+					m.currentConversation.Messages = m.apiMessages
+					m.currentConversation.Model = m.model
+					_ = saveConversation(m.currentConversation)
 				}
+				// Start fresh
+				conv := newConversation(m.model)
+				m.currentConversation = conv
+				m.apiMessages = conv.Messages
+				m.messages = []chatMessage{}
+				m.viewport.SetContent("")
+				m.messages = append(m.messages, chatMessage{Role: "system", Content: "✓ Started new conversation"})
+				m.updateViewport()
 				m.textarea.Reset()
 				return m, nil
 			case "/model":
@@ -395,13 +505,39 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.messages[len(m.messages)-1].Content = msg.content
 			}
 			m.apiMessages = append(m.apiMessages, client.ChatMessage{Role: "assistant", Content: msg.content})
+
+			// Auto-save after each message
+			m.currentConversation.Messages = m.apiMessages
+			m.currentConversation.Model = m.model
+			_ = saveConversation(m.currentConversation)
 		}
 		m.updateViewport()
 		m.viewport.GotoBottom()
 		return m, nil
 
+	case conversationsMsg:
+		m.loadingConversations = false
+		if msg.err != nil {
+			m.err = msg.err
+			m.viewState = viewChat
+			m.textarea.Focus()
+			return m, nil
+		}
+
+		items := make([]list.Item, len(msg.conversations))
+		for i, conv := range msg.conversations {
+			items[i] = conversationItem{
+				id:        conv.ID,
+				title:     conv.Title,
+				updatedAt: conv.UpdatedAt.Format("Jan 2 15:04"),
+				model:     conv.Model,
+			}
+		}
+		m.conversationList.SetItems(items)
+		return m, nil
+
 	case spinner.TickMsg:
-		if m.loading || m.loadingModels {
+		if m.loading || m.loadingModels || m.loadingConversations {
 			m.spinner, spCmd = m.spinner.Update(msg)
 			m.updateViewport()
 			return m, spCmd
@@ -435,6 +571,16 @@ func (m *chatModel) fetchModels() tea.Cmd {
 		})
 
 		return modelsMsg{models: models}
+	}
+}
+
+func (m *chatModel) fetchConversations() tea.Cmd {
+	return func() tea.Msg {
+		conversations, err := listConversations()
+		if err != nil {
+			return conversationsMsg{err: err}
+		}
+		return conversationsMsg{conversations: conversations}
 	}
 }
 
@@ -488,10 +634,6 @@ func (m *chatModel) updateViewport() {
 		}
 	}
 
-	if m.loading {
-		content.WriteString("\n" + m.spinner.View() + " Thinking...\n")
-	}
-
 	m.viewport.SetContent(content.String())
 }
 
@@ -514,6 +656,24 @@ func (m chatModel) View() string {
 
 		b.WriteString("\n")
 		b.WriteString(helpStyle.Render("Enter to select • / to filter • Esc to cancel"))
+
+		return appStyle.Render(b.String())
+	}
+
+	// Conversation picker view
+	if m.viewState == viewConversationPicker {
+		var b strings.Builder
+		header := headerStyle.Render("Conversations")
+		b.WriteString(header + "\n\n")
+
+		if m.loadingConversations {
+			b.WriteString(m.spinner.View() + " Loading conversations...\n")
+		} else {
+			b.WriteString(m.conversationList.View())
+		}
+
+		b.WriteString("\n")
+		b.WriteString(helpStyle.Render("Enter to resume • n for new • / to filter • Esc to cancel"))
 
 		return appStyle.Render(b.String())
 	}
@@ -541,14 +701,22 @@ func (m chatModel) View() string {
 		b.WriteString("\n")
 	}
 
-	b.WriteString(helpStyle.Render("Enter to send • Ctrl+O or /model to switch model • /help • Ctrl+C to quit"))
+	b.WriteString(helpStyle.Render("Enter to send • Ctrl+H history • Ctrl+O model • /help • Ctrl+C quit"))
 
 	return appStyle.Render(b.String())
 }
 
-func runChatTUI() error {
+func runChatTUI(resume bool) error {
+	model := newChatModel()
+
+	// If resume flag is set, start in conversation picker view
+	if resume {
+		model.viewState = viewConversationPicker
+		model.loadingConversations = true
+	}
+
 	p := tea.NewProgram(
-		newChatModel(),
+		model,
 		tea.WithAltScreen(),
 		tea.WithMouseCellMotion(),
 	)
