@@ -1,4 +1,4 @@
-module github.com/adammpkins/llamaterm
+module github.com/adammpkins/llama-terminal-completion
 
 go 1.24.0
 

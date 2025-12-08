@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/adammpkins/llamaterm/internal/config"
+	"github.com/adammpkins/llama-terminal-completion/internal/config"
 )
 
 func TestRunChatExit(t *testing.T) {

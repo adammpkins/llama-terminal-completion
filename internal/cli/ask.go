@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/adammpkins/llamaterm/internal/client"
+	"github.com/adammpkins/llama-terminal-completion/internal/client"
 	"github.com/spf13/cobra"
 )
 

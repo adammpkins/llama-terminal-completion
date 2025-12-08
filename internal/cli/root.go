@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/adammpkins/llamaterm/internal/config"
+	"github.com/adammpkins/llama-terminal-completion/internal/config"
 	"github.com/spf13/cobra"
 )
 

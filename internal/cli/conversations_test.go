@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adammpkins/llamaterm/internal/client"
+	"github.com/adammpkins/llama-terminal-completion/internal/client"
 )
 
 func TestGetConversationsDir(t *testing.T) {

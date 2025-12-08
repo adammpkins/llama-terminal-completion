@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/adammpkins/llamaterm/internal/client"
-	"github.com/adammpkins/llamaterm/internal/config"
+	"github.com/adammpkins/llama-terminal-completion/internal/client"
+	"github.com/adammpkins/llama-terminal-completion/internal/config"
 	"github.com/spf13/cobra"
 )
 

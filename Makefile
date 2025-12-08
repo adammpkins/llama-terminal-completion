@@ -8,7 +8,7 @@ BUILD_DIR=bin
 
 # Version (can be overridden)
 VERSION?=dev
-LDFLAGS=-ldflags "-X github.com/adammpkins/llamaterm/internal/cli.Version=$(VERSION)"
+LDFLAGS=-ldflags "-X github.com/adammpkins/llama-terminal-completion/internal/cli.Version=$(VERSION)"
 
 # Go parameters
 GOCMD=go

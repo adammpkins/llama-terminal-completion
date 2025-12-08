@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adammpkins/llamaterm/internal/client"
+	"github.com/adammpkins/llama-terminal-completion/internal/client"
 )
 
 // Conversation represents a single chat conversation

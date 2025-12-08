@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/adammpkins/llamaterm/internal/cli"
+	"github.com/adammpkins/llama-terminal-completion/internal/cli"
 )
 
 // run is the main entry point, separated for testability

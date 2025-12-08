@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/adammpkins/llamaterm/internal/config"
+	"github.com/adammpkins/llama-terminal-completion/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -83,7 +83,7 @@ var configInitCmd = &cobra.Command{
 
 		// Write default config
 		configContent := `# LlamaTerm Configuration
-# https://github.com/adammpkins/llamaterm
+# https://github.com/adammpkins/llama-terminal-completion
 
 # API endpoint (works with any OpenAI-compatible API)
 base_url: http://localhost:11434/v1

@@ -23,10 +23,10 @@ lt cmd "compress all images in this folder"
 
 ```bash
 # Quick install (requires Go)
-curl -sSL https://raw.githubusercontent.com/adammpkins/llamaterm/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/adammpkins/llama-terminal-completion/main/install.sh | bash
 
 # Or build from source
-git clone https://github.com/adammpkins/llamaterm.git
+git clone https://github.com/adammpkins/llama-terminal-completion.git
 cd llamaterm
 make install
 ```

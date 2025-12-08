@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/adammpkins/llamaterm/internal/client"
+	"github.com/adammpkins/llama-terminal-completion/internal/client"
 	"github.com/spf13/cobra"
 )
 
@@ -74,11 +74,23 @@ func runExplain(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	printInfo("📄 Analyzing %s...\n\n", filepath.Base(filePath))
 
+	var receivedContent bool
 	if cfg.Stream {
 		err = apiClient.ChatCompletionStream(messages, cfg.MaxTokens, cfg.Temperature, func(content string) {
+			receivedContent = true
 			fmt.Print(content)
 		})
 		fmt.Println()
+		if err != nil {
+			return err
+		}
+		if !receivedContent {
+			// File might be too large for context window
+			fileSize := len(content)
+			printError("No response received. The file may be too large for the model's context window.\n")
+			fmt.Printf("  File size: %d bytes (~%d tokens estimated)\n", fileSize, fileSize/4)
+			fmt.Println("  Try a smaller file or a model with larger context.")
+		}
 	} else {
 		resp, err := apiClient.ChatCompletion(messages, cfg.MaxTokens, cfg.Temperature)
 		if err != nil {
@@ -86,10 +98,12 @@ func runExplain(cmd *cobra.Command, args []string) error {
 		}
 		if len(resp.Choices) > 0 {
 			fmt.Println(resp.Choices[0].Message.Content)
+		} else {
+			printError("No response received. The file may be too large for the model's context window.\n")
 		}
 	}
 
-	return err
+	return nil
 }
 
 func detectFileType(ext string) string {

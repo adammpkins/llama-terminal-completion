@@ -1,10 +1,10 @@
 #!/bin/bash
 # LlamaTerm Installation Script
-# https://github.com/adammpkins/llamaterm
+# https://github.com/adammpkins/llama-terminal-completion
 
 set -e
 
-REPO="adammpkins/llamaterm"
+REPO="adammpkins/llama-terminal-completion"
 BINARY="lt"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 

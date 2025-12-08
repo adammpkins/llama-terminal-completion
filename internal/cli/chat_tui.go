@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/adammpkins/llamaterm/internal/client"
+	"github.com/adammpkins/llama-terminal-completion/internal/client"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
