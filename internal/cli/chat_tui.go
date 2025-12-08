@@ -142,8 +142,54 @@ func newChatModel() chatModel {
 	sp.Spinner = spinner.Dot
 	sp.Style = lipgloss.NewStyle().Foreground(primaryColor)
 
+	// Custom glamour style based on dark theme but with proper header rendering
+	customStyle := `{
+		"document": { "block_prefix": "\n", "block_suffix": "\n", "color": "252", "margin": 2 },
+		"block_quote": { "indent": 1, "indent_token": "│ ", "color": "244" },
+		"paragraph": {},
+		"list": { "level_indent": 2 },
+		"heading": { "block_suffix": "\n", "color": "39", "bold": true },
+		"h1": { "prefix": "", "suffix": "", "color": "#FFFFFF", "background_color": "63", "bold": true },
+		"h2": { "prefix": "", "color": "141", "bold": true },
+		"h3": { "prefix": "", "color": "111", "bold": true },
+		"h4": { "prefix": "", "color": "81", "bold": true },
+		"h5": { "prefix": "", "color": "51", "bold": true },
+		"h6": { "prefix": "", "color": "44", "bold": false },
+		"text": {},
+		"strikethrough": { "crossed_out": true },
+		"emph": { "italic": true },
+		"strong": { "bold": true },
+		"hr": { "color": "240", "format": "\n────────────────────\n" },
+		"item": { "block_prefix": "• " },
+		"enumeration": { "block_prefix": ". " },
+		"task": { "ticked": "[✓] ", "unticked": "[ ] " },
+		"link": { "color": "30", "underline": true },
+		"link_text": { "color": "35", "bold": true },
+		"image": { "color": "212", "underline": true },
+		"image_text": { "color": "243", "format": "Image: {{.text}} →" },
+		"code": { "prefix": " ", "suffix": " ", "color": "203", "background_color": "236" },
+		"code_block": { "color": "244", "margin": 2, "chroma": {
+			"text": { "color": "#C4C4C4" },
+			"error": { "color": "#F1F1F1", "background_color": "#F05B5B" },
+			"comment": { "color": "#676767" },
+			"keyword": { "color": "#00AAFF" },
+			"keyword_reserved": { "color": "#FF5FD2" },
+			"keyword_type": { "color": "#6E6ED8" },
+			"operator": { "color": "#EF8080" },
+			"punctuation": { "color": "#E8E8A8" },
+			"name": { "color": "#C4C4C4" },
+			"name_function": { "color": "#00D787" },
+			"literal_number": { "color": "#6EEFC0" },
+			"literal_string": { "color": "#C69669" },
+			"background": { "background_color": "#373737" }
+		}},
+		"table": {},
+		"html_block": {},
+		"html_span": {}
+	}`
+
 	renderer, _ := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
+		glamour.WithStylesFromJSONBytes([]byte(customStyle)),
 		glamour.WithWordWrap(80),
 	)
 
