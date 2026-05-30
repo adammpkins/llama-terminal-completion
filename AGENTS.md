@@ -14,8 +14,15 @@ go test ./... -cover # Coverage report
 
 - **`cmd/lt/main.go`** - Entry point, calls `cli.Execute()`
 - **`internal/cli/`** - All CLI commands and TUI
-- **`internal/client/`** - OpenAI-compatible API client
+- **`internal/client/`** - OpenAI-compatible API client (chat, tools, embeddings, structured output)
 - **`internal/config/`** - Viper-based configuration
+- **`internal/shellrun/`** - Shared command execution, dangerous-command detection, confirmation (used by `cmd` and the agent's `run_command` tool — single-sourced to avoid an import cycle)
+- **`internal/tools/`** - `Tool` interface, `Registry`, and built-in tools (read_file, write_file, edit_file, list_dir, run_command, web_fetch). MCP tools implement the same interface and register here.
+- **`internal/agent/`** - Bounded, confirmation-gated tool-use loop (`lt agent`). Non-streamed; `Risk() >= RiskWrite` tools require confirmation.
+- **`internal/roles/`** - Named system-prompt presets + `text/template` rendering. Built-ins overridable by `~/.config/lt/roles/*.yaml`.
+- **`internal/rag/`** - Pure-Go (no CGO) retrieval: chunk → embed → JSON store → in-memory cosine search.
+- **`internal/mcp/`** - MCP client via the official Go SDK (`github.com/modelcontextprotocol/go-sdk`) behind a small interface; adapts remote tools to `tools.Tool`.
+- **`internal/fetch/`** - URL fetch + HTML→text, shared by `web_fetch` and `@url` expansion.
 
 ## Key Patterns
 
@@ -42,12 +49,40 @@ The TUI only runs in TTY mode. Non-TTY falls back to simple chat mode.
 
 Non-TUI commands (ask, fix, explain, copy) explicitly request **plain text output** (no markdown) since streaming can't render markdown in real-time. The chat TUI uses glamour for markdown rendering after the full response is received.
 
+### Tool calling & the agent loop
+
+- The client exposes `ChatCompletionWithOptions(messages, CompletionOptions{...})` (non-streamed) and `ChatCompletionStreamWithOptions(...)` which reassembles fragmented streaming `tool_calls` deltas by index. `Agent.Stream` selects which is used.
+- The agent loop (`Agent.loop`, exposed via `Run` for one-shot and `RunTurn` for conversational use): send messages + tool defs → if `finish_reason == "tool_calls"`, execute each call (confirming `RiskWrite`/`RiskExec`), append `role:"tool"` results, repeat until no tool calls or `MaxIterations`. An empty final turn triggers one nudge (reasoning models sometimes stop early).
+- `Agent.Audit` records every tool call; the CLI writes it to `~/.config/lt/agent-audit.jsonl` and warns if a run invokes zero tools (endpoint may not support function calling).
+- New built-in tools: implement `tools.Tool` and register in `tools.DefaultRegistry`. They get a workspace boundary via `Workspace.resolve`. `edit_file` requires a unique match.
+
+### Evented agent core + frontends
+
+The agent **never writes to stdout**. `Agent.Emit func(Event)` emits structured `agent.Event`s (`EventStarted/Token/ToolRequested/ToolResult/Error/Done`); `Agent.Confirm` is a **blocking** callback. This lets one engine back multiple frontends:
+
+- **Plain REPL** (`chat_agent.go`, `plainAgentPrinter`): renders events to a writer; `Confirm` reads the REPL's stdin reader.
+- **Bubble Tea TUI** (`chat_agent_tui.go`): runs the agent in a worker goroutine; `Emit` sends events to the program over a buffered `events chan tea.Msg`; `Confirm` sends an `agentConfirmMsg` and blocks on `<-decision`. A confirmation blocks the **worker**, not the UI — the event loop stays live and a confirm modal answers the channel. Exactly one `waitForAgentMsg` command is outstanding at a time (single channel reader).
+- **One-shot `agent`** command uses the same core with `plainAgentPrinter`.
+
+All three build their workspace/registry via `buildAgentRuntime()`. `lt chat --agent` routes to the TUI in a real terminal, the REPL otherwise (non-TTY/tests). When adding a frontend, consume `agent.Event` — do not make the core print.
+
+### Reliability & sessions
+
+- `client.doRequest` retries transient failures (network errors, 429/5xx) with exponential backoff. Tests neutralize the sleep via `client.DisableRetryBackoffForTest()` (called in the cli/client `TestMain`).
+- Sessions (`internal/cli/session.go`) persist named conversations under `~/.config/lt/sessions/`; `--session` on `ask`/`agent` loads prior context and saves the exchange.
+- The shell widget: `lt complete` is the engine (buffer → one command, silent on error), `lt widget {bash,zsh,fish}` prints the Ctrl-G keybinding.
+
+### Multimodal content
+
+`client.ChatMessage` keeps `Content string` for all existing call sites, plus a `Parts []ContentPart` field excluded from default JSON (`json:"-"`). Custom `MarshalJSON`/`UnmarshalJSON` emit `content` as a string when `Parts` is empty (backward compatible with saved history) and as an array when set. **Never** change `Content` to `any` — it would break every `.Content` caller and the conversation store.
+
 ### Testability Patterns
 
 Many functions use injectable dependencies for testing:
 - `stdinStatFunc` - Override `os.Stdin.Stat()` checks
 - `userConfigDirFunc`, `userHomeDirFunc` - Override path lookups
 - `osGOOSFunc`, `execLookPathFunc` - Override clipboard detection
+- New packages follow the same seam: package-level `var xFunc = realImpl` for FS/network (e.g. `roles.configDirFunc`, `rag.readFileFunc`, `mcp.readFileFunc`, `referenceFetchFunc`). Tests use `t.TempDir()` + `httptest` + the MCP SDK's `NewInMemoryTransports`.
 
 ## Testing
 

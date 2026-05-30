@@ -1,15 +1,13 @@
 package cli
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	"regexp"
 	"strings"
 
 	"github.com/adammpkins/llama-terminal-completion/internal/client"
+	"github.com/adammpkins/llama-terminal-completion/internal/shellrun"
 	"github.com/spf13/cobra"
 )
 
@@ -106,17 +104,8 @@ Rules:
 
 	// Auto-run or ask for confirmation
 	if !autoRun && cfg.ConfirmCommands {
-		fmt.Print("Run this command? [y/N]: ")
-		var reader *bufio.Reader
-		if stdinForConfirm != nil {
-			reader = bufio.NewReader(stdinForConfirm)
-		} else {
-			reader = bufio.NewReader(os.Stdin)
-		}
-		response, _ := reader.ReadString('\n')
-		response = strings.TrimSpace(strings.ToLower(response))
-
-		if response != "y" && response != "yes" {
+		ok, _ := shellrun.Confirm("Run this command? [y/N]: ", stdinForConfirm, os.Stdout)
+		if !ok {
 			printInfo("Command not executed.\n")
 			return nil
 		}
@@ -148,51 +137,19 @@ func cleanCommand(raw string) string {
 	return strings.TrimSpace(cmd)
 }
 
-// isDangerous checks if a command contains potentially dangerous patterns
+// isDangerous checks if a command contains potentially dangerous patterns.
+// It delegates to shellrun so the heuristics are single-sourced.
 func isDangerous(cmd string) bool {
-	dangerousPatterns := []string{
-		`rm\s+-rf\s+/`,
-		`rm\s+-rf\s+\*`,
-		`>\s*/dev/sd`,
-		`mkfs\.`,
-		`dd\s+if=`,
-		`:(){`,                 // Fork bomb
-		`chmod\s+-R\s+777\s+/`, // Recursive chmod on root
-		`curl.*\|\s*bash`,      // Pipe to bash
-		`wget.*\|\s*bash`,
-	}
-
-	for _, pattern := range dangerousPatterns {
-		if matched, _ := regexp.MatchString(pattern, cmd); matched {
-			return true
-		}
-	}
-
-	return false
+	return shellrun.IsDangerous(cmd)
 }
 
-// executeCommand runs a shell command
+// executeCommand runs a shell command interactively, wrapping shellrun with the
+// CLI's status messages.
 func executeCommand(command string) error {
-	shell := cfg.Shell
-	if shell == "" {
-		shell = os.Getenv("SHELL")
-		if shell == "" {
-			shell = "/bin/sh"
-		}
-	}
-
-	cmd := exec.Command(shell, "-c", command)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
 	printInfo("Running...\n\n")
 
-	if err := cmd.Run(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return fmt.Errorf("command exited with code %d", exitErr.ExitCode())
-		}
-		return fmt.Errorf("failed to run command: %w", err)
+	if err := shellrun.RunInteractive(command, cfg.Shell); err != nil {
+		return err
 	}
 
 	fmt.Println()

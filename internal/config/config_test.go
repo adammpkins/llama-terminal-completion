@@ -67,6 +67,26 @@ func TestLoadWithEnvVars(t *testing.T) {
 	}
 }
 
+func TestLoadNewFieldsFromEnv(t *testing.T) {
+	t.Setenv("LT_DEFAULT_ROLE", "code-reviewer")
+	t.Setenv("LT_STRUCTURED_OUTPUT_MODE", "prompt")
+	t.Setenv("LT_EMBEDDING_MODEL", "bge-m3")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if cfg.DefaultRole != "code-reviewer" {
+		t.Errorf("Expected DefaultRole from env, got %q", cfg.DefaultRole)
+	}
+	if cfg.StructuredOutputMode != "prompt" {
+		t.Errorf("Expected StructuredOutputMode from env, got %q", cfg.StructuredOutputMode)
+	}
+	if cfg.EmbeddingModel != "bge-m3" {
+		t.Errorf("Expected EmbeddingModel from env, got %q", cfg.EmbeddingModel)
+	}
+}
+
 func TestLoadWithOpenAIEnvVars(t *testing.T) {
 	// Save and restore env vars
 	origAPIKey := os.Getenv("OPENAI_API_KEY")

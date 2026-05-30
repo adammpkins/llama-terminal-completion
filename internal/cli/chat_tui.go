@@ -683,7 +683,11 @@ func (m chatModel) View() string {
 
 	header := headerStyle.Render("🦙 LlamaTerm Chat")
 	modelBadge := modelSelectorStyle.Render(fmt.Sprintf("[%s]", m.model))
-	modelInfo := statusStyle.Render(fmt.Sprintf("Model: %s • API: %s", modelBadge, m.baseURL))
+	status := fmt.Sprintf("Model: %s • API: %s", modelBadge, m.baseURL)
+	if activeRole != nil {
+		status += " • Role: " + activeRole.Name
+	}
+	modelInfo := statusStyle.Render(status)
 	b.WriteString(header + "\n")
 	b.WriteString(modelInfo + "\n\n")
 
@@ -701,7 +705,7 @@ func (m chatModel) View() string {
 		b.WriteString("\n")
 	}
 
-	b.WriteString(helpStyle.Render("Enter to send • Ctrl+H history • Ctrl+O model • /help • Ctrl+C quit"))
+	b.WriteString(helpStyle.Render("Enter send • Ctrl+H history • Ctrl+O model • /help • Ctrl+C quit • tools: lt chat --agent"))
 
 	return appStyle.Render(b.String())
 }

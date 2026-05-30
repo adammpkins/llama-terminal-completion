@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/adammpkins/llama-terminal-completion/internal/agent"
 	"github.com/adammpkins/llama-terminal-completion/internal/client"
 	"github.com/spf13/cobra"
 )
@@ -32,13 +33,41 @@ Examples:
 }
 
 var resumeFlag bool
+var agentChatFlag bool
 
 func init() {
 	rootCmd.AddCommand(chatCmd)
-	chatCmd.Flags().BoolVarP(&resumeFlag, "resume", "r", false, "Resume a previous conversation")
+	chatCmd.Flags().BoolVarP(&resumeFlag, "resume", "R", false, "Resume a previous conversation")
+	chatCmd.Flags().BoolVar(&agentChatFlag, "agent", false, "Enable tools in chat (agentic REPL with file/command/web tools)")
+	// Agentic-chat flags (shared package vars with the agent command).
+	chatCmd.Flags().BoolVarP(&agentYes, "yes", "y", false, "Skip confirmation prompts for write/exec tools (agent mode)")
+	chatCmd.Flags().IntVar(&agentMaxIter, "max-iterations", agent.DefaultMaxIterations, "Maximum model round-trips per turn (agent mode)")
+	chatCmd.Flags().BoolVar(&agentAllowOutside, "allow-outside", false, "Allow file access outside the working directory (agent mode)")
+	chatCmd.Flags().StringVar(&ragFlag, "rag", "", "Expose a rag_search tool backed by this index (agent mode)")
+	chatCmd.Flags().StringSliceVar(&mcpServers, "mcp", nil, "Mount tools from configured MCP servers (agent mode)")
 }
 
 func runChat(cmd *cobra.Command, args []string) error {
+	// Agentic chat: rich Bubble Tea frontend in a real terminal, plain line
+	// REPL otherwise (non-TTY, piped input, tests). Both drive the same evented
+	// agent core.
+	if agentChatFlag {
+		if stdinForChat == nil && chatOutputWriter == nil && isTerminal() {
+			return runAgenticChatTUI()
+		}
+		var reader *bufio.Reader
+		if stdinForChat != nil {
+			reader = bufio.NewReader(stdinForChat)
+		} else {
+			reader = bufio.NewReader(os.Stdin)
+		}
+		output := chatOutputWriter
+		if output == nil {
+			output = os.Stdout
+		}
+		return runAgenticChat(reader, output)
+	}
+
 	// Check if we're in a TTY for the beautiful TUI
 	// If stdin is being injected (for tests) or we're not in a TTY, use simple mode
 	if stdinForChat == nil && isTerminal() {
@@ -73,10 +102,14 @@ func runChatWithReader(reader *bufio.Reader, output io.Writer) error {
 	apiClient := client.NewClient(cfg.BaseURL, cfg.APIKey, cfg.Model)
 
 	// Conversation history
+	chatSystem := "You are a helpful AI assistant. Be concise but thorough in your responses."
+	if s := activeRoleSystem(); s != "" {
+		chatSystem = s
+	}
 	messages := []client.ChatMessage{
 		{
 			Role:    "system",
-			Content: "You are a helpful AI assistant. Be concise but thorough in your responses.",
+			Content: chatSystem,
 		},
 	}
 

@@ -5,7 +5,16 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/adammpkins/llama-terminal-completion/internal/client"
 )
+
+// TestMain disables client retry backoff so error-path tests that return 5xx
+// statuses don't incur real retry delays.
+func TestMain(m *testing.M) {
+	client.DisableRetryBackoffForTest()
+	os.Exit(m.Run())
+}
 
 func TestGetQuestion(t *testing.T) {
 	tests := []struct {

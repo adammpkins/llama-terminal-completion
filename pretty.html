@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pretty</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @font-face {
+            font-family: 'Syne';
+            src: url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700&display=swap');
+        }
+
+        @font-face {
+            font-family: 'Space Grotesk';
+            src: url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&display=swap');
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%);
+        }
+
+        .content {
+            position: relative;
+            z-index: 3;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            cursor: crosshair;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(3rem, 10vw, 8rem);
+            font-weight: 700;
+            text-align: center;
+            background: linear-gradient(90deg, #fff, #ffd700, #ff6b6b, #fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            background-size: 200% 200%;
+            animation: gradientFlow 8s ease infinite;
+            letter-spacing: -0.05em;
+            text-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            line-height: 1;
+            transition: transform 0.3s ease;
+        }
+
+        h1:hover {
+            transform: scale(1.02);
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -20px;
+            height: 100%;
+            background: inherit;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            opacity: 0.3;
+            filter: blur(20px);
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            max-width: 60ch;
+            line-height: 1.8;
+            margin-bottom: 3rem;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .interactive-card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            text-align: center;
+            max-width: 500px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .interactive-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: rotate 10s linear infinite;
+        }
+
+        .interactive-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            background: rgba(255,255,255,0.12);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.2);
+        }
+
+        .interactive-card:active {
+            transform: translateY(-5px) scale(0.98);
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .card-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            transition: opacity 0.3s ease;
+        }
+
+        .card-text {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+            transition: opacity 0.3s ease;
+        }
+
+        .hidden {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .reveal {
+            animation: reveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .btn {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 50px;
+            color: #fff;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.3);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        @keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes reveal {
+            0% {
+                opacity: 0;
+                transform: translateY(50px) scale(0.95);
+                filter: blur(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .glow {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 4;
+            transition: all 0.3s ease;
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+        }
+
+        .scroll-hint {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0.7;
+        }
+
+        .scroll-hint::before,
+        .scroll-hint::after {
+            content: '';
+            width: 20px;
+            height: 2px;
+            background: currentColor;
+            transition: transform 0.3s ease;
+        }
+
+        .scroll-hint:hover::before,
+        .scroll-hint:hover::after {
+            transform: translateY(-5px);
+        }
+
+        .scroll-hint:hover {
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 15vw;
+            }
+
+            .interactive-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas-container" id="canvas"></div>
+    <div class="overlay"></div>
+    
+    <div class="content">
+        <h1 class="reveal">Pretty</h1>
+        <p class="subtitle floating reveal">
+            Interact with the light. 
+            Hover to explore. 
+            Feel the magic unfold.
+        </p>
+
+        <div class="interactive-card reveal" id="card">
+            <div class="card-content">
+                <h2 class="card-title" id="card-title">✨ Surprise Me</h2>
+                <p class="card-text" id="card-text">Click the card to reveal something beautiful.</p>
+                <button class="btn btn-secondary" id="btn">Click Me</button>
+            </div>
+        </div>
+
+        <div class="scroll-hint reveal">
+            <span class="scroll-hint-text">Scroll to explore</span>
+            <span class="scroll-hint-icon">↓</span>
+        </div>
+    </div>
+
+    <script>
+        // Particle System
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouse = { x: null, y: null };
+        let hue = 0;
+
+        // Resize canvas
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Mouse tracking
+        document.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        document.addEventListener('mouseleave', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        // Particle class
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.size = Math.random() * 3 + 1;
+                this.color = color;
+                this.life = Math.random() * 100 + 50;
+                this.maxLife = this.life;
+                this.color = `hsl(${color}, 80%, 70%)`;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+
+                // Mouse interaction
+                if (mouse.x !== null) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 150) {
+                        const force = (150 - distance) / 150;
+                        this.vx -= dx * force * 0.02;
+                        this.vy -= dy * force * 0.02;
+                    }
+                }
+
+                // Friction
+                this.vx *= 0.99;
+                this.vy *= 0.99;
+
+                // Boundaries
+                if (this.x < -10 || this.x > canvas.width + 10) this.vx *= -1;
+                if (this.y < -10 || this.y > canvas.height + 10) this.vy *= -1;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.life / this.maxLife;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // Create particles
+        function createParticles() {
+            const particleCount = Math.min(100, Math.floor(canvas.width * canvas.height / 30000));
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height,
+                    (hue + i * 5) % 360
+                ));
+            }
+        }
+        createParticles();
+
+        // Animation loop
+        function animate() {
+            ctx.fillStyle = 'rgba(102, 126, 234, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            // Remove dead particles
+            particles = particles.filter(p => p.life > 0);
+
+            // Add new particles
+            if (particles.length < 50) {
+                particles.push(new Particle(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height,
+                    hue % 360
+                ));
+            }
+
+            hue += 0.5;
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Create ambient glow effects
+        function createGlow(x, y) {
+            const glow = document.createElement('div');
+            glow.className = 'glow';
+            glow.style.left = x + 'px';
+            glow.style.top = y + 'px';
+            document.body.appendChild(glow);
+
+            setTimeout(() => glow.remove(), 1000);
+        }
+
+        // Interactive card reveal
+        const card = document.getElementById('card');
+        const cardTitle = document.getElementById('card-title');
+        const cardText = document.getElementById('card-text');
+        const btn = document.getElementById('btn');
+
+        const messages = [
+            { title: '✨ Welcome to Beauty', text: 'Every pixel has a purpose. Every interaction tells a story.' },
+            { title: '🎨 Color in Motion', text: 'Watch the gradients breathe. Feel the colors dance.' },
+            { title: '🌍 Infinite Possibilities', text: 'Like this universe of pixels, creativity knows no bounds.' },
+            { title: '💫 You\'re Amazing', text: 'The world is brighter when you're in it. Keep shining.' }
+        ];
+
+        let messageIndex = 0;
+
+        function showNextMessage() {
+            cardTitle.classList.remove('hidden');
+            cardText.classList.remove('hidden');
+            cardTitle.classList.add('reveal');
+            cardText.classList.add('reveal');
+
+            messageIndex = (messageIndex + 1) % messages.length;
+            cardTitle.textContent = messages[messageIndex].title;
+            cardText.textContent = messages[messageIndex].text;
+
+            // Reset animation
+            setTimeout(() => {
+                cardTitle.classList.remove('reveal');
+                cardText.classList.remove('reveal');
+            }, 500);
+        }
+
+        btn.addEventListener('click', showNextMessage);
+        card.addEventListener('click', showNextMessage);
+
+        // Add glow effects on click
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.interactive-card')) return;
+            createGlow(e.clientX, e.clientY);
+        });
+
+        // Typing effect for subtitle
+        const subtitle = document.querySelector('.subtitle');
+        const originalSubtitle = subtitle.textContent;
+        let subtitleIndex = 0;
+        let typing = false;
+
+        function typeSubtitle() {
+            if (subtitleIndex < originalSubtitle.length) {
+                subtitle.textContent += originalSubtitle.charAt(subtitleIndex);
+                subtitleIndex++;
+                setTimeout(typeSubtitle, 50);
+            }
+        }
+
+        setTimeout(typeSubtitle, 1000);
+
+        // Add some magic sparkles
+        function createSparkle() {
+            const sparkle = document.createElement('div');
+            sparkle.style.cssText = `
+                position: fixed;
+                font-size: 20px;
+                pointer-events: none;
+                animation: float 2s ease-out forwards;
+                z-index: 10;
+            `;
+            document.body.appendChild(sparkle);
+
+            const rect = sparkle.getBoundingClientRect();
+            const randomX = (Math.random() - 0.5) * 200;
+            const randomY = (Math.random() - 0.5) * 200;
+            sparkle.style.transform = `translate(${randomX}px, ${randomY}px)`;
+            sparkle.textContent = ['✨', '💫', '⭐', '🎇'][Math.floor(Math.random() * 4)];
+
+            setTimeout(() => sparkle.remove(), 2000);
+        }
+
+        setInterval(createSparkle, 800);
+
+        // Smooth scroll hint
+        const scrollHint = document.querySelector('.scroll-hint');
+        let scrolled = false;
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300 && !scrolled) {
+                scrolled = true;
+                scrollHint.style.opacity = '0';
+            }
+        });
+
+        // Add click ripple effect
+        function createRipple(event, target) {
+            const circle = document.createElement('span');
+            const diameter = Math.max(target.offsetWidth, target.offsetHeight);
+            const radius = diameter / 2;
+            const rect = target.getBoundingClientRect();
+            circle.style.cssText = `
+                position: absolute;
+                border-radius: 50%;
+                transform: scale(0);
+                pointer-events: none;
+                animation: ripple 0.6s linear;
+            `;
+            circle.style.width = circle.style.height = diameter + 'px';
+            circle.style.left = event.clientX - rect.left - radius + 'px';
+            circle.style.top = event.clientY - rect.top - radius + 'px';
+            circle.style.background = 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%)';
+            target.appendChild(circle);
+
+            setTimeout(() => circle.remove(), 600);
+        }
+
+        btn.addEventListener('click', (e) => createRipple(e, btn));
+
+        // Add ripple to card
+        card.addEventListener('click', () => {
+            const rect = card.getBoundingClientRect();
+            const ripple = document.createElement('div');
+            ripple.style.cssText = `
+                position: absolute;
+                border-radius: 50%;
+                transform: scale(0);
+                pointer-events: none;
+                animation: ripple 0.6s linear;
+                background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+                left: ${e.clientX - rect.left}px;
+                top: ${e.clientY - rect.top}px;
+                width: 100px;
+                height: 100px;
+            `;
+            card.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        });
+
+        // Add ripple animation dynamically
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(2);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        console.log('✨ Pretty is loading... enjoy the experience!');
+    </script>
+</body>
+</html>

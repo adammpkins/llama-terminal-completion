@@ -1,14 +1,24 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
+
+// TestMain disables real backoff sleeps so retry-path tests run instantly.
+func TestMain(m *testing.M) {
+	retrySleep = func(time.Duration) {}
+	os.Exit(m.Run())
+}
 
 func TestNewClient(t *testing.T) {
 	client := NewClient("https://api.example.com/v1/", "test-key", "test-model")
@@ -824,7 +834,7 @@ func TestUsesMaxCompletionTokens(t *testing.T) {
 func TestBuildRequestMaxTokens(t *testing.T) {
 	// Test old model uses max_tokens
 	client := NewClient("http://test", "key", "gpt-4")
-	req := client.buildRequest([]ChatMessage{{Role: "user", Content: "test"}}, 100, 0.7, false)
+	req := client.buildRequest([]ChatMessage{{Role: "user", Content: "test"}}, CompletionOptions{MaxTokens: 100, Temperature: 0.7})
 
 	if req.MaxTokens != 100 {
 		t.Errorf("Expected MaxTokens 100, got %d", req.MaxTokens)
@@ -840,7 +850,7 @@ func TestBuildRequestMaxTokens(t *testing.T) {
 func TestBuildRequestMaxCompletionTokens(t *testing.T) {
 	// Test new model uses max_completion_tokens
 	client := NewClient("http://test", "key", "gpt-4o")
-	req := client.buildRequest([]ChatMessage{{Role: "user", Content: "test"}}, 100, 0.7, true)
+	req := client.buildRequest([]ChatMessage{{Role: "user", Content: "test"}}, CompletionOptions{MaxTokens: 100, Temperature: 0.7, Stream: true})
 
 	if req.MaxCompletionTokens != 100 {
 		t.Errorf("Expected MaxCompletionTokens 100, got %d", req.MaxCompletionTokens)
@@ -856,12 +866,306 @@ func TestBuildRequestMaxCompletionTokens(t *testing.T) {
 func TestBuildRequestO1NoTemperature(t *testing.T) {
 	// Test o1 models don't include temperature
 	client := NewClient("http://test", "key", "o1-mini")
-	req := client.buildRequest([]ChatMessage{{Role: "user", Content: "test"}}, 100, 0.7, false)
+	req := client.buildRequest([]ChatMessage{{Role: "user", Content: "test"}}, CompletionOptions{MaxTokens: 100, Temperature: 0.7})
 
 	if req.Temperature != nil {
 		t.Errorf("Expected Temperature to be nil for o1 model, got %v", req.Temperature)
 	}
 	if req.MaxCompletionTokens != 100 {
 		t.Errorf("Expected MaxCompletionTokens 100, got %d", req.MaxCompletionTokens)
+	}
+}
+
+func TestBuildRequestPropagatesToolsAndQuirks(t *testing.T) {
+	// gpt-4o quirk (max_completion_tokens) must still apply when tools are present.
+	client := NewClient("http://test", "key", "gpt-4o")
+	tools := []Tool{{Type: "function", Function: FunctionDef{Name: "read_file"}}}
+	req := client.buildRequest([]ChatMessage{{Role: "user", Content: "go"}}, CompletionOptions{
+		MaxTokens:      50,
+		Temperature:    0.2,
+		Tools:          tools,
+		ToolChoice:     "auto",
+		ResponseFormat: &ResponseFormat{Type: "json_object"},
+	})
+
+	if len(req.Tools) != 1 || req.Tools[0].Function.Name != "read_file" {
+		t.Errorf("Expected tools to propagate, got %+v", req.Tools)
+	}
+	if req.ToolChoice != "auto" {
+		t.Errorf("Expected ToolChoice auto, got %v", req.ToolChoice)
+	}
+	if req.ResponseFormat == nil || req.ResponseFormat.Type != "json_object" {
+		t.Errorf("Expected response_format to propagate, got %+v", req.ResponseFormat)
+	}
+	if req.MaxCompletionTokens != 50 {
+		t.Errorf("Expected MaxCompletionTokens 50 (gpt-4o quirk preserved), got %d", req.MaxCompletionTokens)
+	}
+	if req.MaxTokens != 0 {
+		t.Errorf("Expected MaxTokens 0, got %d", req.MaxTokens)
+	}
+}
+
+func TestChatCompletionWithToolCallResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify tools made it into the request body.
+		var req ChatCompletionRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Errorf("failed to decode request: %v", err)
+		}
+		if len(req.Tools) == 0 {
+			t.Error("expected tools in request body")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"id": "1", "object": "chat.completion", "model": "gpt-4o",
+			"choices": [{
+				"index": 0,
+				"finish_reason": "tool_calls",
+				"message": {
+					"role": "assistant",
+					"content": "",
+					"tool_calls": [{
+						"id": "call_1", "type": "function",
+						"function": {"name": "read_file", "arguments": "{\"path\":\"a.txt\"}"}
+					}]
+				}
+			}]
+		}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, "key", "gpt-4o")
+	resp, err := client.ChatCompletionWithOptions([]ChatMessage{{Role: "user", Content: "read a.txt"}}, CompletionOptions{
+		MaxTokens: 100,
+		Tools:     []Tool{{Type: "function", Function: FunctionDef{Name: "read_file"}}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Choices[0].FinishReason != "tool_calls" {
+		t.Errorf("expected finish_reason tool_calls, got %q", resp.Choices[0].FinishReason)
+	}
+	calls := resp.Choices[0].Message.ToolCalls
+	if len(calls) != 1 || calls[0].Function.Name != "read_file" {
+		t.Fatalf("expected one read_file tool call, got %+v", calls)
+	}
+	if calls[0].Function.Arguments != `{"path":"a.txt"}` {
+		t.Errorf("unexpected arguments: %s", calls[0].Function.Arguments)
+	}
+}
+
+func TestChatMessageStringContentRoundTrip(t *testing.T) {
+	// Backward compatibility: a plain string-content message must marshal to a
+	// string "content" and unmarshal back identically (existing history files).
+	orig := ChatMessage{Role: "user", Content: "hello world"}
+	data, err := json.Marshal(orig)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if !bytes.Contains(data, []byte(`"content":"hello world"`)) {
+		t.Errorf("expected string content, got: %s", data)
+	}
+
+	// Legacy payload decodes correctly.
+	var back ChatMessage
+	if err := json.Unmarshal([]byte(`{"role":"assistant","content":"hi there"}`), &back); err != nil {
+		t.Fatalf("unmarshal legacy: %v", err)
+	}
+	if back.Content != "hi there" || len(back.Parts) != 0 {
+		t.Errorf("legacy decode mismatch: %+v", back)
+	}
+}
+
+func TestChatMessageMultimodalRoundTrip(t *testing.T) {
+	msg := ChatMessage{
+		Role: "user",
+		Parts: []ContentPart{
+			{Type: "text", Text: "what is this?"},
+			{Type: "image_url", ImageURL: &ImageURL{URL: "data:image/png;base64,AAAA"}},
+		},
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	// content must be an array, not a string.
+	if !bytes.Contains(data, []byte(`"content":[`)) || !bytes.Contains(data, []byte(`"image_url"`)) {
+		t.Errorf("expected array content with image_url, got: %s", data)
+	}
+
+	var back ChatMessage
+	if err := json.Unmarshal(data, &back); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(back.Parts) != 2 {
+		t.Fatalf("expected 2 parts, got %d", len(back.Parts))
+	}
+	if back.Content != "what is this?" {
+		t.Errorf("expected flattened text content, got %q", back.Content)
+	}
+	if back.Parts[1].ImageURL == nil || back.Parts[1].ImageURL.URL == "" {
+		t.Errorf("image part lost: %+v", back.Parts[1])
+	}
+}
+
+func TestStreamReassemblesToolCalls(t *testing.T) {
+	// Simulate tool_calls arriving fragmented across SSE chunks, plus content.
+	chunks := []string{
+		`data: {"choices":[{"delta":{"content":"Let me "}}]}`,
+		`data: {"choices":[{"delta":{"content":"check."}}]}`,
+		`data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"read_file","arguments":"{\"pa"}}]}}]}`,
+		`data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"th\":\"a.txt\"}"}}]}}]}`,
+		`data: {"choices":[{"finish_reason":"tool_calls"}]}`,
+		`data: [DONE]`,
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		for _, c := range chunks {
+			_, _ = w.Write([]byte(c + "\n\n"))
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, "key", "m")
+	var streamed strings.Builder
+	res, err := client.ChatCompletionStreamWithOptions(
+		[]ChatMessage{{Role: "user", Content: "read a.txt"}},
+		CompletionOptions{Tools: []Tool{{Type: "function", Function: FunctionDef{Name: "read_file"}}}},
+		func(s string) { streamed.WriteString(s) },
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if streamed.String() != "Let me check." {
+		t.Errorf("streamed content = %q, want 'Let me check.'", streamed.String())
+	}
+	if res.FinishReason != "tool_calls" {
+		t.Errorf("finish reason = %q", res.FinishReason)
+	}
+	if len(res.ToolCalls) != 1 {
+		t.Fatalf("expected 1 reassembled tool call, got %d", len(res.ToolCalls))
+	}
+	tc := res.ToolCalls[0]
+	if tc.ID != "call_1" || tc.Function.Name != "read_file" || tc.Function.Arguments != `{"path":"a.txt"}` {
+		t.Errorf("tool call not reassembled correctly: %+v", tc)
+	}
+}
+
+func TestRetryOnTransientThenSuccess(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := calls.Add(1)
+		if n < 3 {
+			http.Error(w, "overloaded", http.StatusServiceUnavailable) // 503: retryable
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"index":0,"message":{"role":"assistant","content":"ok"}}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, "key", "m")
+	client.MaxRetries = 3
+	resp, err := client.ChatCompletion([]ChatMessage{{Role: "user", Content: "hi"}}, 10, 0.5)
+	if err != nil {
+		t.Fatalf("expected success after retries, got %v", err)
+	}
+	if resp.Choices[0].Message.Content != "ok" {
+		t.Errorf("unexpected content: %q", resp.Choices[0].Message.Content)
+	}
+	if got := calls.Load(); got != 3 {
+		t.Errorf("expected 3 attempts (2 failures + 1 success), got %d", got)
+	}
+}
+
+func TestRetryExhaustedReturnsError(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		http.Error(w, "down", http.StatusBadGateway) // 502: always retryable
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, "key", "m")
+	client.MaxRetries = 2
+	_, err := client.ChatCompletion([]ChatMessage{{Role: "user", Content: "hi"}}, 10, 0.5)
+	if err == nil {
+		t.Fatal("expected error after exhausting retries")
+	}
+	// Last attempt's response is surfaced via handleError (status 502).
+	if got := calls.Load(); got != 3 {
+		t.Errorf("expected 3 attempts (MaxRetries=2 + 1), got %d", got)
+	}
+}
+
+func TestNonRetryableStatusNotRetried(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		http.Error(w, "bad request", http.StatusBadRequest) // 400: not retryable
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, "key", "m")
+	client.MaxRetries = 3
+	if _, err := client.ChatCompletion([]ChatMessage{{Role: "user", Content: "hi"}}, 10, 0.5); err == nil {
+		t.Fatal("expected error for 400")
+	}
+	if got := calls.Load(); got != 1 {
+		t.Errorf("400 should not be retried; expected 1 attempt, got %d", got)
+	}
+}
+
+func TestEmbeddings(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req EmbeddingRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Errorf("decode request: %v", err)
+		}
+		if len(req.Input) != 2 {
+			t.Errorf("expected 2 inputs, got %d", len(req.Input))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		// Return out of order to verify index-based reordering.
+		_, _ = w.Write([]byte(`{"data":[
+			{"object":"embedding","index":1,"embedding":[0.1,0.2]},
+			{"object":"embedding","index":0,"embedding":[0.9,0.8]}
+		]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, "key", "embed-model")
+	vecs, err := client.Embeddings([]string{"a", "b"}, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(vecs) != 2 {
+		t.Fatalf("expected 2 vectors, got %d", len(vecs))
+	}
+	if vecs[0][0] != 0.9 || vecs[1][0] != 0.1 {
+		t.Errorf("vectors not ordered by index: %v", vecs)
+	}
+}
+
+func TestChatCompletionWithResponseFormatInBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if !bytes.Contains(body, []byte(`"response_format"`)) || !bytes.Contains(body, []byte(`"json_schema"`)) {
+			t.Errorf("expected response_format/json_schema in body, got: %s", body)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"1","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"{}"}}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, "key", "gpt-4o")
+	_, err := client.ChatCompletionWithOptions([]ChatMessage{{Role: "user", Content: "extract"}}, CompletionOptions{
+		ResponseFormat: &ResponseFormat{
+			Type:       "json_schema",
+			JSONSchema: &JSONSchemaSpec{Name: "out", Schema: json.RawMessage(`{"type":"object"}`), Strict: true},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

@@ -38,19 +38,64 @@ func runAsk(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no question provided")
 	}
 
+	if question, err = expandReferences(question); err != nil {
+		return err
+	}
+
+	// Augment with retrieved context if --rag was given.
+	var ragSources []string
+	if ragFlag != "" {
+		ctxText, sources, err := ragContext(ragFlag, question, 5)
+		if err != nil {
+			return err
+		}
+		if ctxText != "" {
+			question = question + "\n\n" + ctxText
+			ragSources = sources
+		}
+	}
+
 	// Create API client
 	apiClient := client.NewClient(cfg.BaseURL, cfg.APIKey, cfg.Model)
 
-	// Build messages
-	messages := []client.ChatMessage{
-		{
-			Role:    "system",
-			Content: "You are a helpful AI assistant. Provide clear, concise, and accurate answers. IMPORTANT: Do NOT use any markdown formatting. No **bold**, no *italics*, no ### headers, no ``` code blocks, no bullet points with -, no numbered lists with 1. etc. Write everything as plain flowing text. For code, just write it directly without any surrounding backticks.",
-		},
-		{
-			Role:    "user",
-			Content: question,
-		},
+	// Structured output mode short-circuits the normal text path.
+	if schemaPath != "" {
+		return runAskStructured(apiClient, question)
+	}
+
+	// Build messages. A selected role overrides the default system prompt.
+	systemPrompt := "You are a helpful AI assistant. Provide clear, concise, and accurate answers. IMPORTANT: Do NOT use any markdown formatting. No **bold**, no *italics*, no ### headers, no ``` code blocks, no bullet points with -, no numbered lists with 1. etc. Write everything as plain flowing text. For code, just write it directly without any surrounding backticks."
+	if s := activeRoleSystem(); s != "" {
+		systemPrompt = s
+	}
+
+	userMsg := client.ChatMessage{Role: "user", Content: question}
+	if len(imagePaths) > 0 {
+		imgParts, err := buildImageParts(imagePaths)
+		if err != nil {
+			return err
+		}
+		userMsg.Parts = append([]client.ContentPart{{Type: "text", Text: question}}, imgParts...)
+	}
+
+	// With --session, carry prior context and persist the exchange.
+	var messages []client.ChatMessage
+	if sessionName != "" {
+		prior, err := loadSession(sessionName)
+		if err != nil {
+			return err
+		}
+		if len(prior) == 0 {
+			messages = []client.ChatMessage{{Role: "system", Content: systemPrompt}}
+		} else {
+			messages = prior
+		}
+		messages = append(messages, userMsg)
+	} else {
+		messages = []client.ChatMessage{
+			{Role: "system", Content: systemPrompt},
+			userMsg,
+		}
 	}
 
 	var response strings.Builder
@@ -73,6 +118,20 @@ func runAsk(cmd *cobra.Command, args []string) error {
 			fmt.Println()
 			fmt.Println(content)
 			response.WriteString(content)
+		}
+	}
+
+	// Cite the RAG sources that were retrieved for this answer.
+	if len(ragSources) > 0 {
+		fmt.Println()
+		printInfo(fmt.Sprintf("Sources: %s\n", strings.Join(ragSources, ", ")))
+	}
+
+	// Persist the exchange to the session.
+	if sessionName != "" && response.Len() > 0 {
+		messages = append(messages, client.ChatMessage{Role: "assistant", Content: response.String()})
+		if serr := saveSession(sessionName, cfg.Model, messages); serr != nil {
+			printWarning("Could not save session: %v", serr)
 		}
 	}
 

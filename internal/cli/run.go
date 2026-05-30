@@ -45,7 +45,13 @@ func init() {
 
 	// Add --copy flag to ask command
 	askCmd.Flags().BoolVarP(&copyOutput, "copy", "c", false, "Copy response to clipboard")
+	askCmd.Flags().StringVar(&schemaPath, "schema", "", "Path to a JSON Schema; returns structured JSON output")
+	askCmd.Flags().StringSliceVar(&imagePaths, "image", nil, "Attach image file(s) or URL(s) for vision models")
+	askCmd.Flags().StringVar(&sessionName, "session", "", "Reuse and extend a named session for context")
 }
+
+// sessionName is the value of the --session flag (shared by ask and agent).
+var sessionName string
 
 func executeQuickCmd(cmd *cobra.Command, args []string) error {
 	description := strings.Join(args, " ")

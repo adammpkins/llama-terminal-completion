@@ -10,6 +10,15 @@ stream: true
 confirm_commands: true
 shell: /bin/zsh
 
+# Default role (system-prompt preset) applied when no --role is given
+default_role: ""
+
+# Structured output (--schema): auto | native | prompt
+structured_output_mode: auto
+
+# Embedding model used by `lt rag`
+embedding_model: nomic-embed-text
+
 # Examples for different providers:
 #
 # For Ollama (default):

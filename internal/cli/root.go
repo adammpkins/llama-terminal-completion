@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/adammpkins/llama-terminal-completion/internal/config"
+	"github.com/adammpkins/llama-terminal-completion/internal/roles"
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +21,13 @@ var (
 	noStream    bool
 	maxTokens   int
 	temperature float64
+	roleName    string
 
 	// Global config
 	cfg *config.Config
+
+	// activeRole is the role resolved from --role or config default, if any.
+	activeRole *roles.Role
 )
 
 // rootCmd represents the base command
@@ -67,6 +72,11 @@ Examples:
 			cfg.Temperature = temperature
 		}
 
+		// Resolve the active role (--role flag overrides config default).
+		if err := resolveRole(cmd); err != nil {
+			return err
+		}
+
 		// Initialize markdown renderer for terminal output
 		initMarkdownRenderer()
 
@@ -74,9 +84,42 @@ Examples:
 	},
 }
 
+// resolveRole loads the role named by --role (or cfg.DefaultRole) and applies
+// its model/temperature overrides unless those were set explicitly via flags.
+func resolveRole(cmd *cobra.Command) error {
+	name := roleName
+	if name == "" {
+		name = cfg.DefaultRole
+	}
+	if name == "" {
+		return nil
+	}
+	r, err := roles.Load(name)
+	if err != nil {
+		return err
+	}
+	activeRole = r
+	if r.Model != "" && !cmd.Flags().Changed("model") {
+		cfg.Model = r.Model
+	}
+	if r.Temperature != nil && !cmd.Flags().Changed("temperature") {
+		cfg.Temperature = *r.Temperature
+	}
+	return nil
+}
+
 // Execute runs the root command
 func Execute() error {
 	return rootCmd.Execute()
+}
+
+// activeRoleSystem returns the system prompt of the role selected via --role
+// (or the config default), or "" if none.
+func activeRoleSystem() string {
+	if activeRole != nil {
+		return activeRole.System
+	}
+	return ""
 }
 
 func init() {
@@ -88,6 +131,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&noStream, "no-stream", false, "Disable streaming output")
 	rootCmd.PersistentFlags().IntVar(&maxTokens, "max-tokens", 0, "Maximum tokens to generate")
 	rootCmd.PersistentFlags().Float64Var(&temperature, "temperature", 0, "Temperature for generation")
+	rootCmd.PersistentFlags().StringVarP(&roleName, "role", "r", "", "Use a named role (system-prompt preset)")
 
 	// Add subcommands
 	rootCmd.AddCommand(askCmd)

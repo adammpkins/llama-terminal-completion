@@ -17,6 +17,9 @@ type Client struct {
 	APIKey     string
 	Model      string
 	HTTPClient *http.Client
+	// MaxRetries is the number of additional attempts on transient failures
+	// (network errors and 429/5xx). Zero means use defaultMaxRetries.
+	MaxRetries int
 }
 
 // NewClient creates a new API client
@@ -31,25 +34,107 @@ func NewClient(baseURL, apiKey, model string) *Client {
 	}
 }
 
+const defaultMaxRetries = 2
+
+// retrySleep is the backoff sleep, overridable in tests.
+var retrySleep = time.Sleep
+
+// DisableRetryBackoffForTest removes the inter-retry backoff sleep. It is
+// intended for use in other packages' tests (e.g. cli) whose mock servers
+// return transient statuses; without it those tests would incur real delays.
+func DisableRetryBackoffForTest() { retrySleep = func(time.Duration) {} }
+
+func (c *Client) maxRetries() int {
+	if c.MaxRetries > 0 {
+		return c.MaxRetries
+	}
+	return defaultMaxRetries
+}
+
+// isRetryableStatus reports whether an HTTP status warrants a retry.
+func isRetryableStatus(code int) bool {
+	switch code {
+	case http.StatusTooManyRequests,
+		http.StatusInternalServerError,
+		http.StatusBadGateway,
+		http.StatusServiceUnavailable,
+		http.StatusGatewayTimeout:
+		return true
+	}
+	return false
+}
+
+// doRequest builds and sends an HTTP request with exponential-backoff retry on
+// transient failures (network errors and retryable statuses). The body bytes
+// are re-sent on each attempt. On success it returns the response; the caller
+// is responsible for closing the body and checking the status.
+func (c *Client) doRequest(method, urlPath string, body []byte) (*http.Response, error) {
+	attempts := c.maxRetries() + 1
+	var lastErr error
+	for attempt := range attempts {
+		if attempt > 0 {
+			retrySleep(time.Duration(1<<uint(attempt-1)) * 500 * time.Millisecond)
+		}
+
+		var reader io.Reader
+		if body != nil {
+			reader = bytes.NewReader(body)
+		}
+		req, err := http.NewRequest(method, c.BaseURL+urlPath, reader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+		c.setHeaders(req)
+
+		resp, err := c.HTTPClient.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		if isRetryableStatus(resp.StatusCode) && attempt < attempts-1 {
+			_ = resp.Body.Close()
+			lastErr = fmt.Errorf("transient API error %d", resp.StatusCode)
+			continue
+		}
+		return resp, nil
+	}
+	return nil, fmt.Errorf("request failed after %d attempts: %w", attempts, lastErr)
+}
+
+// CompletionOptions carries the tunable parameters for a chat completion
+// request, including the tool-calling and structured-output fields.
+type CompletionOptions struct {
+	MaxTokens      int
+	Temperature    float64
+	Tools          []Tool
+	ToolChoice     any
+	ResponseFormat *ResponseFormat
+	Stream         bool
+}
+
 // ChatCompletion sends a chat completion request and returns the full response
 func (c *Client) ChatCompletion(messages []ChatMessage, maxTokens int, temperature float64) (*ChatCompletionResponse, error) {
-	req := c.buildRequest(messages, maxTokens, temperature, false)
+	return c.ChatCompletionWithOptions(messages, CompletionOptions{
+		MaxTokens:   maxTokens,
+		Temperature: temperature,
+	})
+}
+
+// ChatCompletionWithOptions sends a non-streaming chat completion request with
+// the full set of options (tools, tool_choice, response_format). The
+// model-quirk handling in buildRequest is applied uniformly.
+func (c *Client) ChatCompletionWithOptions(messages []ChatMessage, opts CompletionOptions) (*ChatCompletionResponse, error) {
+	opts.Stream = false
+	req := c.buildRequest(messages, opts)
 
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequest("POST", c.BaseURL+"/chat/completions", bytes.NewReader(body))
+	resp, err := c.doRequest("POST", "/chat/completions", body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	c.setHeaders(httpReq)
-
-	resp, err := c.HTTPClient.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
+		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -89,11 +174,14 @@ func (c *Client) usesMaxCompletionTokens() bool {
 }
 
 // buildRequest creates a ChatCompletionRequest with the correct token parameter for the model
-func (c *Client) buildRequest(messages []ChatMessage, maxTokens int, temperature float64, stream bool) ChatCompletionRequest {
+func (c *Client) buildRequest(messages []ChatMessage, opts CompletionOptions) ChatCompletionRequest {
 	req := ChatCompletionRequest{
-		Model:    c.Model,
-		Messages: messages,
-		Stream:   stream,
+		Model:          c.Model,
+		Messages:       messages,
+		Stream:         opts.Stream,
+		Tools:          opts.Tools,
+		ToolChoice:     opts.ToolChoice,
+		ResponseFormat: opts.ResponseFormat,
 	}
 
 	// Determine how to set token limits based on model
@@ -112,15 +200,16 @@ func (c *Client) buildRequest(messages []ChatMessage, maxTokens int, temperature
 	if isGPT5Plus {
 		// Don't set any token limit for gpt-5+
 	} else if isO1 || isGPT4O {
-		req.MaxCompletionTokens = maxTokens
+		req.MaxCompletionTokens = opts.MaxTokens
 	} else {
-		req.MaxTokens = maxTokens
+		req.MaxTokens = opts.MaxTokens
 	}
 
 	// Only set temperature for models that support it
 	// o1 series and gpt-5+ don't support custom temperature
 	supportsTemperature := !isO1 && !isGPT5Plus
 	if supportsTemperature {
+		temperature := opts.Temperature
 		req.Temperature = &temperature
 	}
 
@@ -130,23 +219,20 @@ func (c *Client) buildRequest(messages []ChatMessage, maxTokens int, temperature
 // ChatCompletionStream sends a streaming chat completion request
 // The callback is called for each content chunk received
 func (c *Client) ChatCompletionStream(messages []ChatMessage, maxTokens int, temperature float64, callback func(content string)) error {
-	req := c.buildRequest(messages, maxTokens, temperature, true)
+	req := c.buildRequest(messages, CompletionOptions{
+		MaxTokens:   maxTokens,
+		Temperature: temperature,
+		Stream:      true,
+	})
 
 	body, err := json.Marshal(req)
 	if err != nil {
 		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequest("POST", c.BaseURL+"/chat/completions", bytes.NewReader(body))
+	resp, err := c.doRequest("POST", "/chat/completions", body)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	c.setHeaders(httpReq)
-
-	resp, err := c.HTTPClient.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
+		return err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -157,18 +243,126 @@ func (c *Client) ChatCompletionStream(messages []ChatMessage, maxTokens int, tem
 	return c.processStream(resp.Body, callback)
 }
 
-// ListModels fetches available models from the /models endpoint
-func (c *Client) ListModels() (*ModelsResponse, error) {
-	httpReq, err := http.NewRequest("GET", c.BaseURL+"/models", nil)
+// ChatCompletionStreamWithOptions streams a completion that may include tool
+// calls. Content deltas are passed to onContent as they arrive (for live
+// display); fragmented tool_calls deltas are reassembled. It returns the fully
+// assembled result. onContent may be nil.
+func (c *Client) ChatCompletionStreamWithOptions(messages []ChatMessage, opts CompletionOptions, onContent func(string)) (*StreamResult, error) {
+	opts.Stream = true
+	req := c.buildRequest(messages, opts)
+
+	body, err := json.Marshal(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	c.setHeaders(httpReq)
-
-	resp, err := c.HTTPClient.Do(httpReq)
+	resp, err := c.doRequest("POST", "/chat/completions", body)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, c.handleError(resp)
+	}
+
+	return c.processStreamFull(resp.Body, onContent)
+}
+
+// toolCallAccumulator collects fragmented tool-call deltas by index.
+type toolCallAccumulator struct {
+	id   string
+	typ  string
+	name string
+	args strings.Builder
+}
+
+// processStreamFull parses an SSE stream, streaming content to onContent and
+// reassembling tool calls, returning the final StreamResult.
+func (c *Client) processStreamFull(body io.Reader, onContent func(string)) (*StreamResult, error) {
+	reader := bufio.NewReader(body)
+	var content strings.Builder
+	finishReason := ""
+	accs := map[int]*toolCallAccumulator{}
+	var order []int
+
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, fmt.Errorf("error reading stream: %w", err)
+		}
+		line = strings.TrimSpace(line)
+		if line == "" || !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		data := strings.TrimPrefix(line, "data: ")
+		if data == "[DONE]" {
+			break
+		}
+
+		var chunk streamingChunk
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			continue // skip malformed chunks
+		}
+		if len(chunk.Choices) == 0 {
+			continue
+		}
+		choice := chunk.Choices[0]
+		if choice.Delta.Content != "" {
+			content.WriteString(choice.Delta.Content)
+			if onContent != nil {
+				onContent(choice.Delta.Content)
+			}
+		}
+		for _, tc := range choice.Delta.ToolCalls {
+			acc, ok := accs[tc.Index]
+			if !ok {
+				acc = &toolCallAccumulator{}
+				accs[tc.Index] = acc
+				order = append(order, tc.Index)
+			}
+			if tc.ID != "" {
+				acc.id = tc.ID
+			}
+			if tc.Type != "" {
+				acc.typ = tc.Type
+			}
+			if tc.Function.Name != "" {
+				acc.name = tc.Function.Name
+			}
+			if tc.Function.Arguments != "" {
+				acc.args.WriteString(tc.Function.Arguments)
+			}
+		}
+		if choice.FinishReason != "" {
+			finishReason = choice.FinishReason
+		}
+	}
+
+	result := &StreamResult{Content: content.String(), FinishReason: finishReason}
+	for _, idx := range order {
+		acc := accs[idx]
+		typ := acc.typ
+		if typ == "" {
+			typ = "function"
+		}
+		result.ToolCalls = append(result.ToolCalls, ToolCall{
+			ID:       acc.id,
+			Type:     typ,
+			Function: FunctionCall{Name: acc.name, Arguments: acc.args.String()},
+		})
+	}
+	return result, nil
+}
+
+// ListModels fetches available models from the /models endpoint
+func (c *Client) ListModels() (*ModelsResponse, error) {
+	resp, err := c.doRequest("GET", "/models", nil)
+	if err != nil {
+		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -182,6 +376,44 @@ func (c *Client) ListModels() (*ModelsResponse, error) {
 	}
 
 	return &result, nil
+}
+
+// Embeddings requests embedding vectors for the given inputs. If model is
+// empty, the client's Model is used. The returned slice is index-aligned to
+// input.
+func (c *Client) Embeddings(input []string, model string) ([][]float32, error) {
+	if model == "" {
+		model = c.Model
+	}
+	reqBody := EmbeddingRequest{Model: model, Input: input}
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	resp, err := c.doRequest("POST", "/embeddings", body)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, c.handleError(resp)
+	}
+
+	var result EmbeddingResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Order by Index to be safe, then return the raw vectors.
+	out := make([][]float32, len(result.Data))
+	for _, d := range result.Data {
+		if d.Index >= 0 && d.Index < len(out) {
+			out[d.Index] = d.Embedding
+		}
+	}
+	return out, nil
 }
 
 // setHeaders sets the required HTTP headers for API requests
