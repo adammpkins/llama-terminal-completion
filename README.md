@@ -1,6 +1,6 @@
 # LlamaTerm
 
-![LlamaTerm Logo](old-project/llama-md.png)
+![LlamaTerm Logo](assets/llama-md.png)
 
 **AI assistant in your terminal** — works with any OpenAI-compatible API.
 
